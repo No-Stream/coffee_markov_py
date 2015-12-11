@@ -1,11 +1,10 @@
 """Scraping sprudge-linked coffee sites"""
-
 import unittest
 import datetime
 import re
-import requests
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+import requests
 
 
 class Tests(unittest.TestCase):
@@ -19,59 +18,66 @@ def main(url_list):
     for url in url_list:
         return parse_html_and_write(url)
 
-def return_html(url = "http://www.google.com"):
+def return_html(url="http://www.google.com"):
     """print html of a given URL"""
     source_html = (requests.get(url)).text
     content = (source_html).encode("ascii", "ignore")
     return content #gives it back raw
     #return BeautifulSoup(content, "html.parser")
 
-def parse_html_and_write(url = "http://www.google.com"):
+def parse_html_and_write(url="http://www.google.com", rec_depth=0):
     """get soup of page and parse with lxml"""
     content = return_html(url)
     symbol_free_url = re.sub(r'[^\w]', ' ', url)
     soup = BeautifulSoup(content, "lxml")
+    #log_links_on_page(soup, symbol_free_url)
     #wrapping in write function
-    write_page(soup, symbol_free_url, url)
+    write_page(soup, symbol_free_url, url, rec_depth)
 
 
-def write_page(soup, symbol_free_url, url, rec_depth = 0):
+def write_page(soup, symbol_free_url, url, rec_depth):
     """write page to text file"""
     write_logfile(soup, True)
     with open(
         symbol_free_url + " " + datetime.datetime.now().strftime(
             "%Y-%m-%d_%H-%M-%S") + '.txt', 'w') as f:
-        if len(soup.find_all("p"))>0:
+        if len(soup.find_all("p")) > 0:
             for paragraph in soup.find_all("p"):
                 para_text = paragraph.getText()
-                if len(para_text.split())>5: #filter by >5 words
+                if len(para_text.split()) > 5: #filter by >5 words
                     f.write(para_text)
-        def log_links_on_page(soup, default = True):
-            if not default:
-                if len(soup.find_all("a"))>0:
-                    for link in soup.find_all("a", href=True):
-                        try:
-                            f.write("\n" + "link: " + link.get('href'))
-                        except TypeError:
-                            pass
-        def recur(soup, default = True):
+
+        def recur(soup, rec_depth, default=True):
+            """recursive searching of linked pages
+            TODO: separate this function and refactor"""
             parsed_uri = urlparse(url)
             domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
             print("parsed: " + domain)
-            if default and rec_depth < 2 and len(soup.find_all("a"))>0:
+            if default and rec_depth < 1 and len(soup.find_all("a")) > 0:
                 for link in soup.find_all("a", href=True):
                     try:
                         if re.match(domain + r".[^\s]*", link.get('href')):
-                            print(link.get('href'))
-                            #parse_html_and_write(link.get('href'))
+                            #print(link.get('href'))
+                            rec_depth += 1
+                            parse_html_and_write(link.get('href'), rec_depth)
                     except TypeError:
                         pass
-        log_links_on_page(soup, False)
-        recur(soup, True)
-        rec_depth += 1
+        recur(soup, rec_depth, True)
         f.close()
 
-def write_logfile(soup, default = True):
+def log_links_on_page(soup, symbol_free_url):
+    """print links on page to log file"""
+    with open("LINKS: " + symbol_free_url + " " + datetime.datetime.now().strftime(
+        "%Y-%m-%d_%H-%M-%S") + '.txt', 'w') as f:
+        if len(soup.find_all("a")) > 0:
+            for link in soup.find_all("a", href=True):
+                try:
+                    f.write("\n" + "link: " + link.get('href'))
+                except TypeError:
+                    pass
+
+def write_logfile(soup, default=True):
+    """write logfile of scraping operation"""
     if default:
         with open(
             "SCRAPE_LOG" + " " + datetime.datetime.now().strftime(
@@ -84,7 +90,7 @@ def write_logfile(soup, default = True):
 
 """full coffee sites for
 TODO: recursive scraping of full sites by regex of *URL*"""
-sites = [
+SITES = [
     "http://49thcoffee.com/",
     "http://barnine.us/",
     "https://bluebottlecoffee.com/",
@@ -118,7 +124,7 @@ sites = [
 ]
 
 """products pages for coffee roasters"""
-coffee_pages = [
+COFFEE_PAGES = [
     "http://49thcoffee.com/collections/shop",
     "http://barnine.us/collections/all",
 ]
