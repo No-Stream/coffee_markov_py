@@ -27,19 +27,25 @@ def parse_html_and_write(url = "http://www.google.com"):
 
 def write_page(soup, symbol_free_url):
     """write page to text file"""
-    with open(symbol_free_url +'.txt', 'w') as f:
-        f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        f.write("\n" + str(soup.title) + "\n")
-        for paragraph in soup.find_all("p"):
-            para_text = paragraph.getText()
-            #filter by paragraph length in characters
-            #can also try by num_words with .split()
-            if len(para_text)>25:
-                f.write(para_text)
-        for link in soup.find_all("a"):
-            f.write("\n" + "link: " + link.get('href'))
+    with open(
+        symbol_free_url + " " + datetime.datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S") + '.txt', 'w') as f:
+        #f.write(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        #f.write("\n" + str(soup.title) + "\n")
+        if len(soup.find_all("p"))>0:
+            for paragraph in soup.find_all("p"):
+                para_text = paragraph.getText()
+                if len(para_text.split())>5: #filter by >5 words
+                    f.write(para_text)
+        if len(soup.find_all("a"))>0:
+            for link in soup.find_all("a"):
+                f.write('a clause fired')
+                try: 
+                    f.write("\n" + "link: " + link.get('href'))
+                except TypeError:
+                    pass
         f.close()
 
 
-main('http://google.com')
+main('http://www.gutenberg.org/files/216/216-h/216-h.htm')
 #print(soup_of_page("http://www.crummy.com/software/BeautifulSoup/bs4/doc/"))
