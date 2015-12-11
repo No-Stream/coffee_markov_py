@@ -22,7 +22,7 @@ def return_html(url = "http://www.google.com"):
     #return BeautifulSoup(content, "html.parser")
 
 def soup_of_page(url = "http://www.google.com"):
-    """get soup of page and write it"""
+    """get soup of page and parse with lxml"""
     content = return_html(url)
     symbol_free_url = re.sub(r'[^\w]', ' ', url)
     soup = BeautifulSoup(content, "lxml")
@@ -42,6 +42,8 @@ def write_page(soup, symbol_free_url):
         f.write("\n" + str(soup.title) + "\n")
         for paragraph in soup.find_all("p"):
             para_text = paragraph.getText()
+            #filter by paragraph length in characters
+            #can also try by num_words with .split()
             if len(para_text)>25:
                 f.write(para_text)
         for link in soup.find_all("a"):
