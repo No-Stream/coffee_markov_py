@@ -4,6 +4,7 @@ import unittest
 import datetime
 import re
 import requests
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
 
@@ -31,10 +32,10 @@ def parse_html_and_write(url = "http://www.google.com"):
     symbol_free_url = re.sub(r'[^\w]', ' ', url)
     soup = BeautifulSoup(content, "lxml")
     #wrapping in write function
-    write_page(soup, symbol_free_url)
+    write_page(soup, symbol_free_url, url)
 
 
-def write_page(soup, symbol_free_url, rec_depth = 0):
+def write_page(soup, symbol_free_url, url, rec_depth = 0):
     """write page to text file"""
     write_logfile(soup, True)
     with open(
@@ -54,10 +55,13 @@ def write_page(soup, symbol_free_url, rec_depth = 0):
                         except TypeError:
                             pass
         def recur(soup, default = True):
+            parsed_uri = urlparse(url)
+            domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+            print("parsed: " + domain)
             if default and rec_depth < 2 and len(soup.find_all("a"))>0:
                 for link in soup.find_all("a", href=True):
                     try:
-                        if re.match(r"(https?)://[^\s/$.?#].[^\s]*", link.get('href')):
+                        if re.match(domain + r".[^\s]*", link.get('href')):
                             print(link.get('href'))
                             #parse_html_and_write(link.get('href'))
                     except TypeError:
