@@ -1,0 +1,962 @@
+2015-12-10 18:08:19
+<title>Beautiful Soup Documentation  Beautiful Soup 4.4.0 documentation</title>Beautiful Soup is a
+Python library for pulling data out of HTML and XML files. It works
+with your favorite parser to provide idiomatic ways of navigating,
+searching, and modifying the parse tree. It commonly saves programmers
+hours or days of work.These instructions illustrate all major features of Beautiful Soup 4,
+with examples. I show you what the library is good for, how it works,
+how to use it, how to make it do what you want, and what to do when it
+violates your expectations.The examples in this documentation should work the same way in Python
+2.7 and Python 3.2.You might be looking for the documentation for Beautiful Soup 3.
+If so, you should know that Beautiful Soup 3 is no longer being
+developed, and that Beautiful Soup 4 is recommended for all new
+projects. If you want to learn about the differences between Beautiful
+Soup 3 and Beautiful Soup 4, see Porting code to BS4.This documentation has been translated into other languages by
+Beautiful Soup users:If you have questions about Beautiful Soup, or run into problems,
+send mail to the discussion group. If
+your problem involves parsing an HTML document, be sure to mention
+what the diagnose() function says about
+that document.Heres an HTML document Ill be using as an example throughout this
+document. Its part of a story from Alice in Wonderland:Running the three sisters document through Beautiful Soup gives us a
+BeautifulSoup object, which represents the document as a nested
+data structure:Here are some simple ways to navigate that data structure:One common task is extracting all the URLs found within a pages <a> tags:Another common task is extracting all the text from a page:Does this look like what you need? If so, read on.If youre using a recent version of Debian or Ubuntu Linux, you can
+install Beautiful Soup with the system package manager:$ apt-get install python-bs4Beautiful Soup 4 is published through PyPi, so if you cant install it
+with the system packager, you can install it with easy_install or
+pip. The package name is beautifulsoup4, and the same package
+works on Python 2 and Python 3.$ easy_install beautifulsoup4$ pip install beautifulsoup4(The BeautifulSoup package is probably not what you want. Thats
+the previous major release, Beautiful Soup 3. Lots of software uses
+BS3, so its still available, but if youre writing new code you
+should install beautifulsoup4.)If you dont have easy_install or pip installed, you can
+download the Beautiful Soup 4 source tarball and
+install it with setup.py.If all else fails, the license for Beautiful Soup allows you to
+package the entire library with your application. You can download the
+tarball, copy its bs4 directory into your applications codebase,
+and use Beautiful Soup without installing it at all.I use Python 2.7 and Python 3.2 to develop Beautiful Soup, but it
+should work with other recent versions.Beautiful Soup is packaged as Python 2 code. When you install it for
+use with Python 3, its automatically converted to Python 3 code. If
+you dont install the package, the code wont be converted. There have
+also been reports on Windows machines of the wrong version being
+installed.If you get the ImportError No module named HTMLParser, your
+problem is that youre running the Python 2 version of the code under
+Python 3.If you get the ImportError No module named html.parser, your
+problem is that youre running the Python 3 version of the code under
+Python 2.In both cases, your best bet is to completely remove the Beautiful
+Soup installation from your system (including any directory created
+when you unzipped the tarball) and try the installation again.If you get the SyntaxError Invalid syntax on the line
+ROOT_TAG_NAME = u'[document]', you need to convert the Python 2
+code to Python 3. You can do this either by installing the package:$ python3 setup.py installor by manually running Pythons 2to3 conversion script on the
+bs4 directory:Beautiful Soup supports the HTML parser included in Pythons standard
+library, but it also supports a number of third-party Python parsers.
+One is the lxml parser. Depending on your setup,
+you might install lxml with one of these commands:$ apt-get install python-lxmlAnother alternative is the pure-Python html5lib parser, which parses HTML the way a
+web browser does. Depending on your setup, you might install html5lib
+with one of these commands:$ apt-get install python-html5libThis table summarizes the advantages and disadvantages of each parser library:If you can, I recommend you install and use lxml for speed. If youre
+using a version of Python 2 earlier than 2.7.3, or a version of Python
+3 earlier than 3.2.2, its essential that you install lxml or
+html5libPythons built-in HTML parser is just not very good in older
+versions.Note that if a document is invalid, different parsers will generate
+different Beautiful Soup trees for it. See Differences
+between parsers for details.To parse a document, pass it into the BeautifulSoup
+constructor. You can pass in a string or an open filehandle:First, the document is converted to Unicode, and HTML entities are
+converted to Unicode characters:Beautiful Soup then parses the document using the best available
+parser. It will use an HTML parser unless you specifically tell it to
+use an XML parser. (See Parsing XML.)Beautiful Soup transforms a complex HTML document into a complex tree
+of Python objects. But youll only ever have to deal with about four
+kinds of objects: Tag, NavigableString, BeautifulSoup,
+and Comment.A Tag object corresponds to an XML or HTML tag in the original document:Tags have a lot of attributes and methods, and Ill cover most of them
+in Navigating the tree and Searching the tree. For now, the most
+important features of a tag are its name and attributes.Every tag has a name, accessible as .name:If you change a tags name, the change will be reflected in any HTML
+markup generated by Beautiful Soup:A tag may have any number of attributes. The tag <b
+class="boldest"> has an attribute class whose value is
+boldest. You can access a tags attributes by treating the tag like
+a dictionary:You can access that dictionary directly as .attrs:You can add, remove, and modify a tags attributes. Again, this is
+done by treating the tag as a dictionary:HTML 4 defines a few attributes that can have multiple values. HTML 5
+removes a couple of them, but defines a few more. The most common
+multi-valued attribute is class (that is, a tag can have more than
+one CSS class). Others include rel, rev, accept-charset,
+headers, and accesskey. Beautiful Soup presents the value(s)
+of a multi-valued attribute as a list:If an attribute looks like it has more than one value, but its not
+a multi-valued attribute as defined by any version of the HTML
+standard, Beautiful Soup will leave the attribute alone:When you turn a tag back into a string, multiple attribute values are
+consolidated:If you parse a document as XML, there are no multi-valued attributes:A string corresponds to a bit of text within a tag. Beautiful Soup
+uses the NavigableString class to contain these bits of text:A NavigableString is just like a Python Unicode string, except
+that it also supports some of the features described in Navigating
+the tree and Searching the tree. You can convert a
+NavigableString to a Unicode string with unicode():You cant edit a string in place, but you can replace one string with
+another, using replace_with():NavigableString supports most of the features described in
+Navigating the tree and Searching the tree, but not all of
+them. In particular, since a string cant contain anything (the way a
+tag may contain a string or another tag), strings dont support the
+.contents or .string attributes, or the find() method.If you want to use a NavigableString outside of Beautiful Soup,
+you should call unicode() on it to turn it into a normal Python
+Unicode string. If you dont, your string will carry around a
+reference to the entire Beautiful Soup parse tree, even when youre
+done using Beautiful Soup. This is a big waste of memory.The BeautifulSoup object itself represents the document as a
+whole. For most purposes, you can treat it as a Tag
+object. This means it supports most of the methods described in
+Navigating the tree and Searching the tree.Since the BeautifulSoup object doesnt correspond to an actual
+HTML or XML tag, it has no name and no attributes. But sometimes its
+useful to look at its .name, so its been given the special
+.name [document]:Tag, NavigableString, and BeautifulSoup cover almost
+everything youll see in an HTML or XML file, but there are a few
+leftover bits. The only one youll probably ever need to worry about
+is the comment:The Comment object is just a special type of NavigableString:But when it appears as part of an HTML document, a Comment is
+displayed with special formatting:Beautiful Soup defines classes for anything else that might show up in
+an XML document: CData, ProcessingInstruction,
+Declaration, and Doctype. Just like Comment, these classes
+are subclasses of NavigableString that add something extra to the
+string. Heres an example that replaces the comment with a CDATA
+block:Heres the Three sisters HTML document again:Ill use this as an example to show you how to move from one part of
+a document to another.Tags may contain strings and other tags. These elements are the tags
+children. Beautiful Soup provides a lot of different attributes for
+navigating and iterating over a tags children.Note that Beautiful Soup strings dont support any of these
+attributes, because a string cant have children.The simplest way to navigate the parse tree is to say the name of the
+tag you want. If you want the <head> tag, just say soup.head:You can do use this trick again and again to zoom in on a certain part
+of the parse tree. This code gets the first <b> tag beneath the <body> tag:Using a tag name as an attribute will give you only the first tag by that
+name:If you need to get all the <a> tags, or anything more complicated
+than the first tag with a certain name, youll need to use one of the
+methods described in Searching the tree, such as find_all():A tags children are available in a list called .contents:The BeautifulSoup object itself has children. In this case, the
+<html> tag is the child of the BeautifulSoup object.:A string does not have .contents, because it cant contain
+anything:Instead of getting them as a list, you can iterate over a tags
+children using the .children generator:The .contents and .children attributes only consider a tags
+direct children. For instance, the <head> tag has a single direct
+childthe <title> tag:But the <title> tag itself has a child: the string The Dormouses
+story. Theres a sense in which that string is also a child of the
+<head> tag. The .descendants attribute lets you iterate over all
+of a tags children, recursively: its direct children, the children of
+its direct children, and so on:The <head> tag has only one child, but it has two descendants: the
+<title> tag and the <title> tags child. The BeautifulSoup object
+only has one direct child (the <html> tag), but it has a whole lot of
+descendants:If a tag has only one child, and that child is a NavigableString,
+the child is made available as .string:If a tags only child is another tag, and that tag has a
+.string, then the parent tag is considered to have the same
+.string as its child:If a tag contains more than one thing, then its not clear what
+.string should refer to, so .string is defined to be
+None:If theres more than one thing inside a tag, you can still look at
+just the strings. Use the .strings generator:These strings tend to have a lot of extra whitespace, which you can
+remove by using the .stripped_strings generator instead:Here, strings consisting entirely of whitespace are ignored, and
+whitespace at the beginning and end of strings is removed.Continuing the family tree analogy, every tag and every string has a
+parent: the tag that contains it.You can access an elements parent with the .parent attribute. In
+the example three sisters document, the <head> tag is the parent
+of the <title> tag:The title string itself has a parent: the <title> tag that contains
+it:The parent of a top-level tag like <html> is the BeautifulSoup object
+itself:And the .parent of a BeautifulSoup object is defined as None:You can iterate over all of an elements parents with
+.parents. This example uses .parents to travel from an <a> tag
+buried deep within the document, to the very top of the document:Consider a simple document like this:The <b> tag and the <c> tag are at the same level: theyre both direct
+children of the same tag. We call them siblings. When a document is
+pretty-printed, siblings show up at the same indentation level. You
+can also use this relationship in the code you write.You can use .next_sibling and .previous_sibling to navigate
+between page elements that are on the same level of the parse tree:The <b> tag has a .next_sibling, but no .previous_sibling,
+because theres nothing before the <b> tag on the same level of the
+tree. For the same reason, the <c> tag has a .previous_sibling
+but no .next_sibling:The strings text1 and text2 are not siblings, because they dont
+have the same parent:In real documents, the .next_sibling or .previous_sibling of a
+tag will usually be a string containing whitespace. Going back to the
+three sisters document:You might think that the .next_sibling of the first <a> tag would
+be the second <a> tag. But actually, its a string: the comma and
+newline that separate the first <a> tag from the second:The second <a> tag is actually the .next_sibling of the comma:You can iterate over a tags siblings with .next_siblings or
+.previous_siblings:Take a look at the beginning of the three sisters document:An HTML parser takes this string of characters and turns it into a
+series of events: open an <html> tag, open a <head> tag, open a
+<title> tag, add a string, close the <title> tag, open a <p>
+tag, and so on. Beautiful Soup offers tools for reconstructing the
+initial parse of the document.The .next_element attribute of a string or tag points to whatever
+was parsed immediately afterwards. It might be the same as
+.next_sibling, but its usually drastically different.Heres the final <a> tag in the three sisters document. Its
+.next_sibling is a string: the conclusion of the sentence that was
+interrupted by the start of the <a> tag.:But the .next_element of that <a> tag, the thing that was parsed
+immediately after the <a> tag, is not the rest of that sentence:
+its the word Tillie:Thats because in the original markup, the word Tillie appeared
+before that semicolon. The parser encountered an <a> tag, then the
+word Tillie, then the closing </a> tag, then the semicolon and rest of
+the sentence. The semicolon is on the same level as the <a> tag, but the
+word Tillie was encountered first.The .previous_element attribute is the exact opposite of
+.next_element. It points to whatever element was parsed
+immediately before this one:You should get the idea by now. You can use these iterators to move
+forward or backward in the document as it was parsed:Beautiful Soup defines a lot of methods for searching the parse tree,
+but theyre all very similar. Im going to spend a lot of time explaining
+the two most popular methods: find() and find_all(). The other
+methods take almost exactly the same arguments, so Ill just cover
+them briefly.Once again, Ill be using the three sisters document as an example:By passing in a filter to an argument like find_all(), you can
+zoom in on the parts of the document youre interested in.Before talking in detail about find_all() and similar methods, I
+want to show examples of different filters you can pass into these
+methods. These filters show up again and again, throughout the
+search API. You can use them to filter based on a tags name,
+on its attributes, on the text of a string, or on some combination of
+these.The simplest filter is a string. Pass a string to a search method and
+Beautiful Soup will perform a match against that exact string. This
+code finds all the <b> tags in the document:If you pass in a byte string, Beautiful Soup will assume the string is
+encoded as UTF-8. You can avoid this by passing in a Unicode string instead.If you pass in a regular expression object, Beautiful Soup will filter
+against that regular expression using its match() method. This code
+finds all the tags whose names start with the letter b; in this
+case, the <body> tag and the <b> tag:This code finds all the tags whose names contain the letter t:If you pass in a list, Beautiful Soup will allow a string match
+against any item in that list. This code finds all the <a> tags
+and all the <b> tags:The value True matches everything it can. This code finds all
+the tags in the document, but none of the text strings:If none of the other matches work for you, define a function that
+takes an element as its only argument. The function should return
+True if the argument matches, and False otherwise.Heres a function that returns True if a tag defines the class
+attribute but doesnt define the id attribute:Pass this function into find_all() and youll pick up all the <p>
+tags:This function only picks up the <p> tags. It doesnt pick up the <a>
+tags, because those tags define both class and id. It doesnt pick
+up tags like <html> and <title>, because those tags dont define
+class.If you pass in a function to filter on a specific attribute like
+href, the argument passed into the function will be the attribute
+value, not the whole tag. Heres a function that finds all a tags
+whose href attribute does not match a regular expression:The function can be as complicated as you need it to be. Heres a
+function that returns True if a tag is surrounded by string
+objects:Now were ready to look at the search methods in detail.Signature: find_all(name, attrs, recursive, string, limit, **kwargs)The find_all() method looks through a tags descendants and
+retrieves all descendants that match your filters. I gave several
+examples in Kinds of filters, but here are a few more:Some of these should look familiar, but others are new. What does it
+mean to pass in a value for string, or id? Why does
+find_all("p", "title") find a <p> tag with the CSS class title?
+Lets look at the arguments to find_all().Pass in a value for name and youll tell Beautiful Soup to only
+consider tags with certain names. Text strings will be ignored, as
+will tags whose names that dont match.This is the simplest usage:Recall from Kinds of filters that the value to name can be a
+string, a regular expression, a list, a function, or the value
+True.Any argument thats not recognized will be turned into a filter on one
+of a tags attributes. If you pass in a value for an argument called id,
+Beautiful Soup will filter against each tags id attribute:If you pass in a value for href, Beautiful Soup will filter
+against each tags href attribute:You can filter an attribute based on a string, a regular
+expression, a list, a function, or the value True.This code finds all tags whose id attribute has a value,
+regardless of what the value is:You can filter multiple attributes at once by passing in more than one
+keyword argument:Some attributes, like the data-* attributes in HTML 5, have names that
+cant be used as the names of keyword arguments:You can use these attributes in searches by putting them into a
+dictionary and passing the dictionary into find_all() as the
+attrs argument:Its very useful to search for a tag that has a certain CSS class, but
+the name of the CSS attribute, class, is a reserved word in
+Python. Using class as a keyword argument will give you a syntax
+error. As of Beautiful Soup 4.1.2, you can search by CSS class using
+the keyword argument class_:As with any keyword argument, you can pass class_ a string, a regular
+expression, a function, or True:Remember that a single tag can have multiple
+values for its class attribute. When you search for a tag that
+matches a certain CSS class, youre matching against any of its CSS
+classes:You can also search for the exact string value of the class attribute:But searching for variants of the string value wont work:If you want to search for tags that match two or more CSS classes, you
+should use a CSS selector:In older versions of Beautiful Soup, which dont have the class_
+shortcut, you can use the attrs trick mentioned above. Create a
+dictionary whose value for class is the string (or regular
+expression, or whatever) you want to search for:With string you can search for strings instead of tags. As with
+name and the keyword arguments, you can pass in a string, a
+regular expression, a list, a function, or the value True.
+Here are some examples:Although string is for finding strings, you can combine it with
+arguments that find tags: Beautiful Soup will find all tags whose
+.string matches your value for string. This code finds the <a>
+tags whose .string is Elsie:The string argument is new in Beautiful Soup 4.4.0. In earlier
+versions it was called text:find_all() returns all the tags and strings that match your
+filters. This can take a while if the document is large. If you dont
+need all the results, you can pass in a number for limit. This
+works just like the LIMIT keyword in SQL. It tells Beautiful Soup to
+stop gathering results after its found a certain number.There are three links in the three sisters document, but this code
+only finds the first two:If you call mytag.find_all(), Beautiful Soup will examine all the
+descendants of mytag: its children, its childrens children, and
+so on. If you only want Beautiful Soup to consider direct children,
+you can pass in recursive=False. See the difference here:Heres that part of the document:The <title> tag is beneath the <html> tag, but its not directly
+beneath the <html> tag: the <head> tag is in the way. Beautiful Soup
+finds the <title> tag when its allowed to look at all descendants of
+the <html> tag, but when recursive=False restricts it to the
+<html> tags immediate children, it finds nothing.Beautiful Soup offers a lot of tree-searching methods (covered below),
+and they mostly take the same arguments as find_all(): name,
+attrs, string, limit, and the keyword arguments. But the
+recursive argument is different: find_all() and find() are
+the only methods that support it. Passing recursive=False into a
+method like find_parents() wouldnt be very useful.Because find_all() is the most popular method in the Beautiful
+Soup search API, you can use a shortcut for it. If you treat the
+BeautifulSoup object or a Tag object as though it were a
+function, then its the same as calling find_all() on that
+object. These two lines of code are equivalent:These two lines are also equivalent:Signature: find(name, attrs, recursive, string, **kwargs)The find_all() method scans the entire document looking for
+results, but sometimes you only want to find one result. If you know a
+document only has one <body> tag, its a waste of time to scan the
+entire document looking for more. Rather than passing in limit=1
+every time you call find_all, you can use the find()
+method. These two lines of code are nearly equivalent:The only difference is that find_all() returns a list containing
+the single result, and find() just returns the result.If find_all() cant find anything, it returns an empty list. If
+find() cant find anything, it returns None:Remember the soup.head.title trick from Navigating using tag
+names? That trick works by repeatedly calling find():Signature: find_parents(name, attrs, string, limit, **kwargs)Signature: find_parent(name, attrs, string, **kwargs)I spent a lot of time above covering find_all() and
+find(). The Beautiful Soup API defines ten other methods for
+searching the tree, but dont be afraid. Five of these methods are
+basically the same as find_all(), and the other five are basically
+the same as find(). The only differences are in what parts of the
+tree they search.First lets consider find_parents() and
+find_parent(). Remember that find_all() and find() work
+their way down the tree, looking at tags descendants. These methods
+do the opposite: they work their way up the tree, looking at a tags
+(or a strings) parents. Lets try them out, starting from a string
+buried deep in the three daughters document:One of the three <a> tags is the direct parent of the string in
+question, so our search finds it. One of the three <p> tags is an
+indirect parent of the string, and our search finds that as
+well. Theres a <p> tag with the CSS class title somewhere in the
+document, but its not one of this strings parents, so we cant find
+it with find_parents().You may have made the connection between find_parent() and
+find_parents(), and the .parent and .parents attributes
+mentioned earlier. The connection is very strong. These search methods
+actually use .parents to iterate over all the parents, and check
+each one against the provided filter to see if it matches.Signature: find_next_siblings(name, attrs, string, limit, **kwargs)Signature: find_next_sibling(name, attrs, string, **kwargs)These methods use .next_siblings to
+iterate over the rest of an elements siblings in the tree. The
+find_next_siblings() method returns all the siblings that match,
+and find_next_sibling() only returns the first one:Signature: find_previous_siblings(name, attrs, string, limit, **kwargs)Signature: find_previous_sibling(name, attrs, string, **kwargs)These methods use .previous_siblings to iterate over an elements
+siblings that precede it in the tree. The find_previous_siblings()
+method returns all the siblings that match, and
+find_previous_sibling() only returns the first one:Signature: find_all_next(name, attrs, string, limit, **kwargs)Signature: find_next(name, attrs, string, **kwargs)These methods use .next_elements to
+iterate over whatever tags and strings that come after it in the
+document. The find_all_next() method returns all matches, and
+find_next() only returns the first match:In the first example, the string Elsie showed up, even though it was
+contained within the <a> tag we started from. In the second example,
+the last <p> tag in the document showed up, even though its not in
+the same part of the tree as the <a> tag we started from. For these
+methods, all that matters is that an element match the filter, and
+show up later in the document than the starting element.Signature: find_all_previous(name, attrs, string, limit, **kwargs)Signature: find_previous(name, attrs, string, **kwargs)These methods use .previous_elements to
+iterate over the tags and strings that came before it in the
+document. The find_all_previous() method returns all matches, and
+find_previous() only returns the first match:The call to find_all_previous("p") found the first paragraph in
+the document (the one with class=title), but it also finds the
+second paragraph, the <p> tag that contains the <a> tag we started
+with. This shouldnt be too surprising: were looking at all the tags
+that show up earlier in the document than the one we started with. A
+<p> tag that contains an <a> tag must have shown up before the <a>
+tag it contains.Beautiful Soup supports the most commonly-used CSS selectors. Just
+pass a string into the .select() method of a Tag object or the
+BeautifulSoup object itself.Find tags beneath other tags:Find tags directly beneath other tags:Find the siblings of tags:Find tags that match any selector from a list of selectors:Test for the existence of an attribute:Find tags by attribute value:Find only the first tag that matches a selector:This is all a convenience for users who know the CSS selector syntax. You
+can do all this stuff with the Beautiful Soup API. And if CSS
+selectors are all you need, you might as well use lxml directly: its
+a lot faster, and it supports more CSS selectors. But this lets you
+combine simple CSS selectors with the Beautiful Soup API.Beautiful Soups main strength is in searching the parse tree, but you
+can also modify the tree and write your changes as a new HTML or XML
+document.I covered this earlier, in Attributes, but it bears repeating. You
+can rename a tag, change the values of its attributes, add new
+attributes, and delete attributes:If you set a tags .string attribute, the tags contents are
+replaced with the string you give:Be careful: if the tag contained other tags, they and all their
+contents will be destroyed.You can add to a tags contents with Tag.append(). It works just
+like calling .append() on a Python list:If you need to add a string to a document, no problemyou can pass a
+Python string in to append(), or you can call the NavigableString
+constructor:If you want to create a comment or some other subclass of
+NavigableString, just call the constructor:(This is a new feature in Beautiful Soup 4.4.0.)What if you need to create a whole new tag?  The best solution is to
+call the factory method BeautifulSoup.new_tag():Only the first argument, the tag name, is required.Tag.insert() is just like Tag.append(), except the new element
+doesnt necessarily go at the end of its parents
+.contents. Itll be inserted at whatever numeric position you
+say. It works just like .insert() on a Python list:The insert_before() method inserts a tag or string immediately
+before something else in the parse tree:The insert_after() method moves a tag or string so that it
+immediately follows something else in the parse tree:Tag.clear() removes the contents of a tag:PageElement.extract() removes a tag or string from the tree. It
+returns the tag or string that was extracted:At this point you effectively have two parse trees: one rooted at the
+BeautifulSoup object you used to parse the document, and one rooted
+at the tag that was extracted. You can go on to call extract on
+a child of the element you extracted:Tag.decompose() removes a tag from the tree, then completely
+destroys it and its contents:PageElement.replace_with() removes a tag or string from the tree,
+and replaces it with the tag or string of your choice:replace_with() returns the tag or string that was replaced, so
+that you can examine it or add it back to another part of the tree.PageElement.wrap() wraps an element in the tag you specify. It
+returns the new wrapper:This method is new in Beautiful Soup 4.0.5.Tag.unwrap() is the opposite of wrap(). It replaces a tag with
+whatevers inside that tag. Its good for stripping out markup:Like replace_with(), unwrap() returns the tag
+that was replaced.The prettify() method will turn a Beautiful Soup parse tree into a
+nicely formatted Unicode string, with each HTML/XML tag on its own line:You can call prettify() on the top-level BeautifulSoup object,
+or on any of its Tag objects:If you just want a string, with no fancy formatting, you can call
+unicode() or str() on a BeautifulSoup object, or a Tag
+within it:The str() function returns a string encoded in UTF-8. See
+Encodings for other options.You can also call encode() to get a bytestring, and decode()
+to get Unicode.If you give Beautiful Soup a document that contains HTML entities like
+&lquot;, theyll be converted to Unicode characters:If you then convert the document to a string, the Unicode characters
+will be encoded as UTF-8. You wont get the HTML entities back:By default, the only characters that are escaped upon output are bare
+ampersands and angle brackets. These get turned into &amp;, &lt;,
+and &gt;, so that Beautiful Soup doesnt inadvertently generate
+invalid HTML or XML:You can change this behavior by providing a value for the
+formatter argument to prettify(), encode(), or
+decode(). Beautiful Soup recognizes four possible values for
+formatter.The default is formatter="minimal". Strings will only be processed
+enough to ensure that Beautiful Soup generates valid HTML/XML:If you pass in formatter="html", Beautiful Soup will convert
+Unicode characters to HTML entities whenever possible:If you pass in formatter=None, Beautiful Soup will not modify
+strings at all on output. This is the fastest option, but it may lead
+to Beautiful Soup generating invalid HTML/XML, as in these examples:Finally, if you pass in a function for formatter, Beautiful Soup
+will call that function once for every string and attribute value in
+the document. You can do whatever you want in this function. Heres a
+formatter that converts strings to uppercase and does absolutely
+nothing else:If youre writing your own function, you should know about the
+EntitySubstitution class in the bs4.dammit module. This class
+implements Beautiful Soups standard formatters as class methods: the
+html formatter is EntitySubstitution.substitute_html, and the
+minimal formatter is EntitySubstitution.substitute_xml. You can
+use these functions to simulate formatter=html or
+formatter==minimal, but then do something extra.Heres an example that replaces Unicode characters with HTML entities
+whenever possible, but also converts all strings to uppercase:One last caveat: if you create a CData object, the text inside
+that object is always presented exactly as it appears, with no
+formatting. Beautiful Soup will call the formatter method, just in
+case youve written a custom method that counts all the strings in the
+document or something, but it will ignore the return value:If you only want the text part of a document or tag, you can use the
+get_text() method. It returns all the text in a document or
+beneath a tag, as a single Unicode string:You can specify a string to be used to join the bits of text
+together:You can tell Beautiful Soup to strip whitespace from the beginning and
+end of each bit of text:But at that point you might want to use the .stripped_strings
+generator instead, and process the text yourself:If you just need to parse some HTML, you can dump the markup into the
+BeautifulSoup constructor, and itll probably be fine. Beautiful
+Soup will pick a parser for you and parse the data. But there are a
+few additional arguments you can pass in to the constructor to change
+which parser is used.The first argument to the BeautifulSoup constructor is a string or
+an open filehandlethe markup you want parsed. The second argument is
+how youd like the markup parsed.If you dont specify anything, youll get the best HTML parser thats
+installed. Beautiful Soup ranks lxmls parser as being the best, then
+html5libs, then Pythons built-in parser. You can override this by
+specifying one of the following:The section Installing a parser contrasts the supported parsers.If you dont have an appropriate parser installed, Beautiful Soup will
+ignore your request and pick a different parser. Right now, the only
+supported XML parser is lxml. If you dont have lxml installed, asking
+for an XML parser wont give you one, and asking for lxml wont work
+either.Beautiful Soup presents the same interface to a number of different
+parsers, but each parser is different. Different parsers will create
+different parse trees from the same document. The biggest differences
+are between the HTML parsers and the XML parsers. Heres a short
+document, parsed as HTML:Since an empty <b /> tag is not valid HTML, the parser turns it into a
+<b></b> tag pair.Heres the same document parsed as XML (running this requires that you
+have lxml installed). Note that the empty <b /> tag is left alone, and
+that the document is given an XML declaration instead of being put
+into an <html> tag.:There are also differences between HTML parsers. If you give Beautiful
+Soup a perfectly-formed HTML document, these differences wont
+matter. One parser will be faster than another, but theyll all give
+you a data structure that looks exactly like the original HTML
+document.But if the document is not perfectly-formed, different parsers will
+give different results. Heres a short, invalid document parsed using
+lxmls HTML parser. Note that the dangling </p> tag is simply
+ignored:Heres the same document parsed using html5lib:Instead of ignoring the dangling </p> tag, html5lib pairs it with an
+opening <p> tag. This parser also adds an empty <head> tag to the
+document.Heres the same document parsed with Pythons built-in HTML
+parser:Like html5lib, this parser ignores the closing </p> tag. Unlike
+html5lib, this parser makes no attempt to create a well-formed HTML
+document by adding a <body> tag. Unlike lxml, it doesnt even bother
+to add an <html> tag.Since the document <a></p> is invalid, none of these techniques is
+the correct way to handle it. The html5lib parser uses techniques
+that are part of the HTML5 standard, so it has the best claim on being
+the correct way, but all three techniques are legitimate.Differences between parsers can affect your script. If youre planning
+on distributing your script to other people, or running it on multiple
+machines, you should specify a parser in the BeautifulSoup
+constructor. That will reduce the chances that your users parse a
+document differently from the way you parse it.Any HTML or XML document is written in a specific encoding like ASCII
+or UTF-8.  But when you load that document into Beautiful Soup, youll
+discover its been converted to Unicode:Its not magic. (That sure would be nice.) Beautiful Soup uses a
+sub-library called Unicode, Dammit to detect a documents encoding
+and convert it to Unicode. The autodetected encoding is available as
+the .original_encoding attribute of the BeautifulSoup object:Unicode, Dammit guesses correctly most of the time, but sometimes it
+makes mistakes. Sometimes it guesses correctly, but only after a
+byte-by-byte search of the document that takes a very long time. If
+you happen to know a documents encoding ahead of time, you can avoid
+mistakes and delays by passing it to the BeautifulSoup constructor
+as from_encoding.Heres a document written in ISO-8859-8. The document is so short that
+Unicode, Dammit cant get a good lock on it, and misidentifies it as
+ISO-8859-7:We can fix this by passing in the correct from_encoding:If you dont know what the correct encoding is, but you know that
+Unicode, Dammit is guessing wrong, you can pass the wrong guesses in
+as exclude_encodings:Windows-1255 isnt 100% correct, but that encoding is a compatible
+superset of ISO-8859-8, so its close enough. (exclude_encodings
+is a new feature in Beautiful Soup 4.4.0.)In rare cases (usually when a UTF-8 document contains text written in
+a completely different encoding), the only way to get Unicode may be
+to replace some characters with the special Unicode character
+REPLACEMENT CHARACTER (U+FFFD, ). If Unicode, Dammit needs to do
+this, it will set the .contains_replacement_characters attribute
+to True on the UnicodeDammit or BeautifulSoup object. This
+lets you know that the Unicode representation is not an exact
+representation of the originalsome data was lost. If a document
+contains , but .contains_replacement_characters is False,
+youll know that the  was there originally (as it is in this
+paragraph) and doesnt stand in for missing data.When you write out a document from Beautiful Soup, you get a UTF-8
+document, even if the document wasnt in UTF-8 to begin with. Heres a
+document written in the Latin-1 encoding:Note that the <meta> tag has been rewritten to reflect the fact that
+the document is now in UTF-8.If you dont want UTF-8, you can pass an encoding into prettify():You can also call encode() on the BeautifulSoup object, or any
+element in the soup, just as if it were a Python string:Any characters that cant be represented in your chosen encoding will
+be converted into numeric XML entity references. Heres a document
+that includes the Unicode character SNOWMAN:The SNOWMAN character can be part of a UTF-8 document (it looks like
+), but theres no representation for that character in ISO-Latin-1 or
+ASCII, so its converted into &#9731 for those encodings:You can use Unicode, Dammit without using Beautiful Soup. Its useful
+whenever you have data in an unknown encoding and you just want it to
+become Unicode:Unicode, Dammits guesses will get a lot more accurate if you install
+the chardet or cchardet Python libraries. The more data you
+give Unicode, Dammit, the more accurately it will guess. If you have
+your own suspicions as to what the encoding might be, you can pass
+them in as a list:Unicode, Dammit has two special features that Beautiful Soup doesnt
+use.You can use Unicode, Dammit to convert Microsoft smart quotes to HTML or XML
+entities:You can also convert Microsoft smart quotes to ASCII quotes:Hopefully youll find this feature useful, but Beautiful Soup doesnt
+use it. Beautiful Soup prefers the default behavior, which is to
+convert Microsoft smart quotes to Unicode characters along with
+everything else:Sometimes a document is mostly in UTF-8, but contains Windows-1252
+characters such as (again) Microsoft smart quotes. This can happen
+when a website includes data from multiple sources. You can use
+UnicodeDammit.detwingle() to turn such a document into pure
+UTF-8. Heres a simple example:This document is a mess. The snowmen are in UTF-8 and the quotes are
+in Windows-1252. You can display the snowmen or the quotes, but not
+both:Decoding the document as UTF-8 raises a UnicodeDecodeError, and
+decoding it as Windows-1252 gives you gibberish. Fortunately,
+UnicodeDammit.detwingle() will convert the string to pure UTF-8,
+allowing you to decode it to Unicode and display the snowmen and quote
+marks simultaneously:UnicodeDammit.detwingle() only knows how to handle Windows-1252
+embedded in UTF-8 (or vice versa, I suppose), but this is the most
+common case.Note that you must know to call UnicodeDammit.detwingle() on your
+data before passing it into BeautifulSoup or the UnicodeDammit
+constructor. Beautiful Soup assumes that a document has a single
+encoding, whatever it might be. If you pass it a document that
+contains both UTF-8 and Windows-1252, its likely to think the whole
+document is Windows-1252, and the document will come out looking like
+I like snowmen!.UnicodeDammit.detwingle() is new in Beautiful Soup 4.1.0.Beautiful Soup says that two NavigableString or Tag objects
+are equal when they represent the same HTML or XML markup. In this
+example, the two <b> tags are treated as equal, even though they live
+in different parts of the object tree, because they both look like
+<b>pizza</b>:If you want to see whether two variables refer to exactly the same
+object, use is:You can use copy.copy() to create a copy of any Tag or
+NavigableString:The copy is considered equal to the original, since it represents the
+same markup as the original, but its not the same object:The only real difference is that the copy is completely detached from
+the original Beautiful Soup object tree, just as if extract() had
+been called on it:This is because two different Tag objects cant occupy the same
+space at the same time.Lets say you want to use Beautiful Soup look at a documents <a>
+tags. Its a waste of time and memory to parse the entire document and
+then go over it again looking for <a> tags. It would be much faster to
+ignore everything that wasnt an <a> tag in the first place. The
+SoupStrainer class allows you to choose which parts of an incoming
+document are parsed. You just create a SoupStrainer and pass it in
+to the BeautifulSoup constructor as the parse_only argument.(Note that this feature wont work if youre using the html5lib parser.
+If you use html5lib, the whole document will be parsed, no
+matter what. This is because html5lib constantly rearranges the parse
+tree as it works, and if some part of the document didnt actually
+make it into the parse tree, itll crash. To avoid confusion, in the
+examples below Ill be forcing Beautiful Soup to use Pythons
+built-in parser.)The SoupStrainer class takes the same arguments as a typical
+method from Searching the tree: name, attrs, string, and **kwargs. Here are
+three SoupStrainer objects:Im going to bring back the three sisters document one more time,
+and well see what the document looks like when its parsed with these
+three SoupStrainer objects:You can also pass a SoupStrainer into any of the methods covered
+in Searching the tree. This probably isnt terribly useful, but I
+thought Id mention it:If youre having trouble understanding what Beautiful Soup does to a
+document, pass the document into the diagnose() function. (New in
+Beautiful Soup 4.2.0.)  Beautiful Soup will print out a report showing
+you how different parsers handle the document, and tell you if youre
+missing a parser that Beautiful Soup could be using:Just looking at the output of diagnose() may show you how to solve the
+problem. Even if not, you can paste the output of diagnose() when
+asking for help.There are two different kinds of parse errors. There are crashes,
+where you feed a document to Beautiful Soup and it raises an
+exception, usually an HTMLParser.HTMLParseError. And there is
+unexpected behavior, where a Beautiful Soup parse tree looks a lot
+different than the document used to create it.Almost none of these problems turn out to be problems with Beautiful
+Soup. This is not because Beautiful Soup is an amazingly well-written
+piece of software. Its because Beautiful Soup doesnt include any
+parsing code. Instead, it relies on external parsers. If one parser
+isnt working on a certain document, the best solution is to try a
+different parser. See Installing a parser for details and a parser
+comparison.The most common parse errors are HTMLParser.HTMLParseError:
+malformed start tag and HTMLParser.HTMLParseError: bad end
+tag. These are both generated by Pythons built-in HTML parser
+library, and the solution is to install lxml or
+html5lib.The most common type of unexpected behavior is that you cant find a
+tag that you know is in the document. You saw it going in, but
+find_all() returns [] or find() returns None. This is
+another common problem with Pythons built-in HTML parser, which
+sometimes skips tags it doesnt understand.  Again, the solution is to
+install lxml or html5lib.By default, Beautiful Soup parses documents as HTML. To parse a
+document as XML, pass in xml as the second argument to the
+BeautifulSoup constructor:Youll need to have lxml installed.Beautiful Soup will never be as fast as the parsers it sits on top
+of. If response time is critical, if youre paying for computer time
+by the hour, or if theres any other reason why computer time is more
+valuable than programmer time, you should forget about Beautiful Soup
+and work directly atop lxml.That said, there are things you can do to speed up Beautiful Soup. If
+youre not using lxml as the underlying parser, my advice is to
+start. Beautiful Soup parses documents
+significantly faster using lxml than using html.parser or html5lib.You can speed up encoding detection significantly by installing the
+cchardet library.Parsing only part of a document wont save you much time parsing
+the document, but it can save a lot of memory, and itll make
+searching the document much faster.Beautiful Soup 3 is the previous release series, and is no longer
+being actively developed. Its currently packaged with all major Linux
+distributions:$ apt-get install python-beautifulsoupIts also published through PyPi as BeautifulSoup.:$ easy_install BeautifulSoup$ pip install BeautifulSoupYou can also download a tarball of Beautiful Soup 3.2.0.If you ran easy_install beautifulsoup or easy_install
+BeautifulSoup, but your code doesnt work, you installed Beautiful
+Soup 3 by mistake. You need to run easy_install beautifulsoup4.The documentation for Beautiful Soup 3 is archived online.Most code written against Beautiful Soup 3 will work against Beautiful
+Soup 4 with one simple change. All you should have to do is change the
+package name from BeautifulSoup to bs4. So this:Although BS4 is mostly backwards-compatible with BS3, most of its
+methods have been deprecated and given new names for PEP 8 compliance. There are numerous other
+renames and changes, and a few of them break backwards compatibility.Heres what youll need to know to convert your BS3 code and habits to BS4:Beautiful Soup 3 used Pythons SGMLParser, a module that was
+deprecated and removed in Python 3.0. Beautiful Soup 4 uses
+html.parser by default, but you can plug in lxml or html5lib and
+use that instead. See Installing a parser for a comparison.Since html.parser is not the same parser as SGMLParser, you
+may find that Beautiful Soup 4 gives you a different parse tree than
+Beautiful Soup 3 for the same markup. If you swap out html.parser
+for lxml or html5lib, you may find that the parse tree changes yet
+again. If this happens, youll need to update your scraping code to
+deal with the new tree.Some arguments to the Beautiful Soup constructor were renamed for the
+same reasons:I renamed one method for compatibility with Python 3:I renamed one attribute to use more accurate terminology:I renamed three attributes to avoid using words that have special
+meaning to Python. Unlike the others, these changes are not backwards
+compatible. If you used these attributes in BS3, your code will break
+on BS4 until you change them.I gave the generators PEP 8-compliant names, and transformed them into
+properties:(But the old code will still work.)Some of the generators used to yield None after they were done, and
+then stop. That was a bug. Now the generators just stop.There are two new generators, .strings and
+.stripped_strings. .strings yields
+NavigableString objects, and .stripped_strings yields Python
+strings that have had whitespace stripped.There is no longer a BeautifulStoneSoup class for parsing XML. To
+parse XML you pass in xml as the second argument to the
+BeautifulSoup constructor. For the same reason, the
+BeautifulSoup constructor no longer recognizes the isHTML
+argument.Beautiful Soups handling of empty-element XML tags has been
+improved. Previously when you parsed XML you had to explicitly say
+which tags were considered empty-element tags. The selfClosingTags
+argument to the constructor is no longer recognized. Instead,
+Beautiful Soup considers any empty tag to be an empty-element tag. If
+you add a child to an empty-element tag, it stops being an
+empty-element tag.An incoming HTML or XML entity is always converted into the
+corresponding Unicode character. Beautiful Soup 3 had a number of
+overlapping ways of dealing with entities, which have been
+removed. The BeautifulSoup constructor no longer recognizes the
+smartQuotesTo or convertEntities arguments. (Unicode,
+Dammit still has smart_quotes_to, but its default is now to turn
+smart quotes into Unicode.) The constants HTML_ENTITIES,
+XML_ENTITIES, and XHTML_ENTITIES have been removed, since they
+configure a feature (transforming some but not all entities into
+Unicode characters) that no longer exists.If you want to turn Unicode characters back into HTML entities on
+output, rather than turning them into UTF-8 characters, you need to
+use an output formatter.Tag.string now operates recursively. If tag A
+contains a single tag B and nothing else, then A.string is the same as
+B.string. (Previously, it was None.)Multi-valued attributes like class have lists of strings as
+their values, not strings. This may affect the way you search by CSS
+class.If you pass one of the find* methods both string and
+a tag-specific argument like name, Beautiful Soup will
+search for tags that match your tag-specific criteria and whose
+Tag.string matches your value for string. It will not find the strings themselves. Previously,
+Beautiful Soup ignored the tag-specific arguments and looked for
+strings.The BeautifulSoup constructor no longer recognizes the
+markupMassage argument. Its now the parsers responsibility to
+handle markup correctly.The rarely-used alternate parser classes like
+ICantBelieveItsBeautifulSoup and BeautifulSOAP have been
+removed. Its now the parsers decision how to handle ambiguous
+markup.The prettify() method now returns a Unicode string, not a bytestring.
+    Enter search terms or a module, class or function name.
+    
+link: genindex.html
+link: #
+link: #beautiful-soup-documentation
+link: http://www.crummy.com/software/BeautifulSoup/
+link: http://www.crummy.com/software/BeautifulSoup/bs3/documentation.html
+link: #porting-code-to-bs4
+link: http://www.crummy.com/software/BeautifulSoup/bs4/doc.zh/
+link: http://kondou.com/BS4/
+link: http://coreapython.hosting.paran.com/etc/beautifulsoup4.html
+link: #getting-help
+link: https://groups.google.com/forum/?fromgroups#%21forum/beautifulsoup
+link: #diagnose
+link: #quick-start
+link: #installing-beautiful-soup
+link: http://www.crummy.com/software/BeautifulSoup/bs3/documentation.html
+link: http://www.crummy.com/software/BeautifulSoup/download/4.x/
+link: #problems-after-installation
+link: #installing-a-parser
+link: http://lxml.de/
+link: http://code.google.com/p/html5lib/
+link: #differences-between-parsers
+link: #making-the-soup
+link: #id16
+link: #kinds-of-objects
+link: #tag
+link: #navigating-the-tree
+link: #searching-the-tree
+link: #name
+link: #attributes
+link: #multi-valued-attributes
+link: #navigablestring
+link: #navigating-the-tree
+link: #searching-the-tree
+link: #replace-with
+link: #navigating-the-tree
+link: #searching-the-tree
+link: #beautifulsoup
+link: #tag
+link: #navigating-the-tree
+link: #searching-the-tree
+link: #comments-and-other-special-strings
+link: #navigating-the-tree
+link: #going-down
+link: #navigating-using-tag-names
+link: #searching-the-tree
+link: #contents-and-children
+link: #descendants
+link: #string
+link: #strings-and-stripped-strings
+link: #going-up
+link: #parent
+link: #parents
+link: #going-sideways
+link: #next-sibling-and-previous-sibling
+link: #next-siblings-and-previous-siblings
+link: #going-back-and-forth
+link: #next-element-and-previous-element
+link: #next-elements-and-previous-elements
+link: #searching-the-tree
+link: #kinds-of-filters
+link: #a-string
+link: #a-regular-expression
+link: #a-list
+link: #true
+link: #a-function
+link: #find-all
+link: #id11
+link: #attrs
+link: #recursive
+link: #id12
+link: #limit
+link: #kwargs
+link: #kinds-of-filters
+link: #the-name-argument
+link: #kinds-of-filters
+link: #a-string
+link: #a-regular-expression
+link: #a-list
+link: #a-function
+link: #the-value-true
+link: #the-keyword-arguments
+link: #a-string
+link: #a-regular-expression
+link: #a-list
+link: #a-function
+link: #the-value-true
+link: #searching-by-css-class
+link: #multivalue
+link: #the-string-argument
+link: #a-string
+link: #a-regular-expression
+link: #a-list
+link: #a-function
+link: #the-value-true
+link: #the-limit-argument
+link: #the-recursive-argument
+link: #calling-a-tag-is-like-calling-find-all
+link: #find
+link: #id11
+link: #attrs
+link: #recursive
+link: #id12
+link: #kwargs
+link: #navigating-using-tag-names
+link: #find-parents-and-find-parent
+link: #id11
+link: #attrs
+link: #id12
+link: #limit
+link: #kwargs
+link: #id11
+link: #attrs
+link: #id12
+link: #kwargs
+link: #parent
+link: #parents
+link: #find-next-siblings-and-find-next-sibling
+link: #id11
+link: #attrs
+link: #id12
+link: #limit
+link: #kwargs
+link: #id11
+link: #attrs
+link: #id12
+link: #kwargs
+link: #sibling-generators
+link: #find-previous-siblings-and-find-previous-sibling
+link: #id11
+link: #attrs
+link: #id12
+link: #limit
+link: #kwargs
+link: #id11
+link: #attrs
+link: #id12
+link: #kwargs
+link: #sibling-generators
+link: #find-all-next-and-find-next
+link: #id11
+link: #attrs
+link: #id12
+link: #limit
+link: #kwargs
+link: #id11
+link: #attrs
+link: #id12
+link: #kwargs
+link: #element-generators
+link: #find-all-previous-and-find-previous
+link: #id11
+link: #attrs
+link: #id12
+link: #limit
+link: #kwargs
+link: #id11
+link: #attrs
+link: #id12
+link: #kwargs
+link: #element-generators
+link: #css-selectors
+link: http://example.com/elsie
+link: http://example.com/lacie
+link: #modifying-the-tree
+link: #changing-tag-names-and-attributes
+link: #attributes
+link: #modifying-string
+link: #append
+link: #navigablestring-and-new-tag
+link: #insert
+link: #insert-before-and-insert-after
+link: #clear
+link: #extract
+link: #decompose
+link: #replace-with
+link: #wrap
+link: #unwrap
+link: #output
+link: #pretty-printing
+link: #non-pretty-printing
+link: #encodings
+link: #output-formatters
+link: #get-text
+link: #string-generators
+link: #specifying-the-parser-to-use
+link: #installing-a-parser
+link: #differences-between-parsers
+link: #encodings
+link: #unicode-dammit
+link: #output-encoding
+link: #unicode-dammit
+link: #smart-quotes
+link: #inconsistent-encodings
+link: #comparing-objects-for-equality
+link: #copying-beautiful-soup-objects
+link: #parsing-only-part-of-a-document
+link: #soupstrainer
+link: #searching-the-tree
+link: #id11
+link: #attrs
+link: #id12
+link: #kwargs
+link: #searching-the-tree
+link: #troubleshooting
+link: #diagnose
+link: #errors-when-parsing-a-document
+link: #installing-a-parser
+link: #parser-installation
+link: #parser-installation
+link: #version-mismatch-problems
+link: #parsing-xml
+link: #parser-installation
+link: #other-parser-problems
+link: #differences-between-parsers
+link: http://www.w3.org/TR/html5/syntax.html#syntax
+link: #parsing-xml
+link: #miscellaneous
+link: http://wiki.python.org/moin/PrintFails
+link: #improving-performance
+link: http://lxml.de/
+link: #parser-installation
+link: http://pypi.python.org/pypi/cchardet/
+link: #parsing-only-part-of-a-document
+link: #id17
+link: http://www.crummy.com/software/BeautifulSoup/bs3/download/3.x/BeautifulSoup-3.2.0.tar.gz
+link: http://www.crummy.com/software/BeautifulSoup/bs3/documentation.html
+link: #porting-code-to-bs4
+link: http://www.python.org/dev/peps/pep-0008/
+link: #you-need-a-parser
+link: #installing-a-parser
+link: #method-names
+link: #generators
+link: #string-generators
+link: #xml
+link: #entities
+link: #unicode-dammit
+link: #output-formatters
+link: #id18
+link: #string
+link: #multi-valued-attributes
+link: #id12
+link: #id11
+link: #string
+link: #id12
+link: #
+link: #
+link: #getting-help
+link: #quick-start
+link: #installing-beautiful-soup
+link: #problems-after-installation
+link: #installing-a-parser
+link: #making-the-soup
+link: #kinds-of-objects
+link: #tag
+link: #name
+link: #attributes
+link: #multi-valued-attributes
+link: #navigablestring
+link: #beautifulsoup
+link: #comments-and-other-special-strings
+link: #navigating-the-tree
+link: #going-down
+link: #navigating-using-tag-names
+link: #contents-and-children
+link: #descendants
+link: #string
+link: #strings-and-stripped-strings
+link: #going-up
+link: #parent
+link: #parents
+link: #going-sideways
+link: #next-sibling-and-previous-sibling
+link: #next-siblings-and-previous-siblings
+link: #going-back-and-forth
+link: #next-element-and-previous-element
+link: #next-elements-and-previous-elements
+link: #searching-the-tree
+link: #kinds-of-filters
+link: #a-string
+link: #a-regular-expression
+link: #a-list
+link: #true
+link: #a-function
+link: #find-all
+link: #the-name-argument
+link: #the-keyword-arguments
+link: #searching-by-css-class
+link: #the-string-argument
+link: #the-limit-argument
+link: #the-recursive-argument
+link: #calling-a-tag-is-like-calling-find-all
+link: #find
+link: #find-parents-and-find-parent
+link: #find-next-siblings-and-find-next-sibling
+link: #find-previous-siblings-and-find-previous-sibling
+link: #find-all-next-and-find-next
+link: #find-all-previous-and-find-previous
+link: #css-selectors
+link: #modifying-the-tree
+link: #changing-tag-names-and-attributes
+link: #modifying-string
+link: #append
+link: #navigablestring-and-new-tag
+link: #insert
+link: #insert-before-and-insert-after
+link: #clear
+link: #extract
+link: #decompose
+link: #replace-with
+link: #wrap
+link: #unwrap
+link: #output
+link: #pretty-printing
+link: #non-pretty-printing
+link: #output-formatters
+link: #get-text
+link: #specifying-the-parser-to-use
+link: #differences-between-parsers
+link: #encodings
+link: #output-encoding
+link: #unicode-dammit
+link: #smart-quotes
+link: #inconsistent-encodings
+link: #comparing-objects-for-equality
+link: #copying-beautiful-soup-objects
+link: #parsing-only-part-of-a-document
+link: #soupstrainer
+link: #troubleshooting
+link: #diagnose
+link: #errors-when-parsing-a-document
+link: #version-mismatch-problems
+link: #parsing-xml
+link: #other-parser-problems
+link: #miscellaneous
+link: #improving-performance
+link: #id17
+link: #porting-code-to-bs4
+link: #you-need-a-parser
+link: #method-names
+link: #generators
+link: #xml
+link: #entities
+link: #id18
+link: _sources/index.txt
+link: genindex.html
+link: #
+link: http://sphinx-doc.org/
