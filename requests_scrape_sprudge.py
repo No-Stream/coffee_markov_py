@@ -2,6 +2,7 @@
 import unittest
 import datetime
 import re
+#import os
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import requests
@@ -27,10 +28,10 @@ def return_html(url="http://www.google.com"):
     #return BeautifulSoup(content, "html.parser")
 
 def parse_html_and_write(url="http://www.google.com", rec_depth=0):
-    """get soup of page and parse with lxml"""
+    """get soup of page and parse with html.parser; lxml didn't find all"""
     content = return_html(url)
     symbol_free_url = re.sub(r'[^\w]', ' ', url)
-    soup = BeautifulSoup(content, "lxml")
+    soup = BeautifulSoup(content, "html.parser")
     #log_links_on_page(soup, symbol_free_url)
     #wrapping in write function
     write_page(soup, symbol_free_url, url, rec_depth)
@@ -39,51 +40,49 @@ def parse_html_and_write(url="http://www.google.com", rec_depth=0):
 def write_page(soup, symbol_free_url, url, rec_depth):
     """write page to text file"""
     write_logfile(soup, True)
+    #TODO: makedir for log & scape data
+    #os.makedirs('test/', exist_ok=True)
+    elements_searched = ["p", "span"]
     with open(
         symbol_free_url + " " + datetime.datetime.now().strftime(
-            "%Y-%m-%d_%H-%M-%S") + '.txt', 'w') as f:
-        if len(soup.find_all("p")) > 0:
-            for paragraph in soup.find_all("p"):
-                para_text = paragraph.getText()
-                if len(para_text.split()) > 5: #filter by >5 words
-                    f.write(para_text)
-                else:
-                    print("this wasn't long enough: " + para_text)
+            "%Y-%m-%d_%H-%M-%S") + '.txt', 'w') as output:
+        for element in elements_searched:
+            if len(soup.find_all(element)) > 0:
+                for paragraph in soup.find_all(element):
+                    para_text = paragraph.getText()
+                    if len(para_text.split()) > 5: #filter by >5 words
+                        output.write(para_text)
+                    else:
+                        print("this wasn't long enough: " + para_text)
         recur(soup, rec_depth, url)
-        f.close()
+        output.close()
 
 def recur(soup, rec_depth, url):
-            """recursive searching of linked pages
-            TODO: separate this function and refactor"""
-            parsed_uri = urlparse(url)
-            domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
-            print("domain = " + domain)
-            if rec_depth < 1 and len(soup.find_all("a")) > 0:
-                #print("found an <a>")
-                for link in soup.find_all("a", href=True):
-                    #print(link)
-                    try:
-                        #print(link.get('href'))
-                        #if re.match(domain + r".[^\s]*", link.get('href')):
-                        if True: #re.match(domain, link.get('href')):
-                            print("recurring w/ link = " + link.get('href'))
-                            #rec_depth += 1
-                            try:
-                                parse_html_and_write(link.get('href'), rec_depth=1)
-                            #except MissingSchema:
-                            except Exception as e:
-                                pass
-                    except TypeError:
-                        pass
+    """recursive searching of linked pages
+    TODO: separate this function and refactor"""
+    parsed_uri = urlparse(url)
+    domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+    print("domain = " + domain)
+    if rec_depth < 1 and len(soup.find_all("a")) > 0:
+        for link in soup.find_all("a", href=True):
+            try:
+                print("recurring w/ link = " + link.get('href'))
+                try:
+                    parse_html_and_write(link.get('href'), rec_depth=1)
+                #TODO: clean up catch-all exception-catcher
+                except Exception:
+                    pass
+            except TypeError:
+                pass
 
 def log_links_on_page(soup, symbol_free_url):
     """print links on page to log file"""
     with open("LINKS: " + symbol_free_url + " " + datetime.datetime.now().strftime(
-        "%Y-%m-%d_%H-%M-%S") + '.txt', 'w') as f:
+        "%Y-%m-%d_%H-%M-%S") + '.txt', 'w') as links_log:
         if len(soup.find_all("a")) > 0:
             for link in soup.find_all("a", href=True):
                 try:
-                    f.write("\n" + "link: " + link.get('href'))
+                    links_log.write("\n" + "link: " + link.get('href'))
                 except TypeError:
                     pass
 
@@ -92,10 +91,10 @@ def write_logfile(soup, default=True):
     if default:
         with open(
             "SCRAPE_LOG" + " " + datetime.datetime.now().strftime(
-                "%Y-%m-%d") + '.txt', 'a') as f:
-            f.write(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-            f.write("\n" + str(soup.title) + "\n" + "\n")
-            f.close()
+                "%Y-%m-%d") + '.txt', 'a') as logfile:
+            logfile.write(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+            logfile.write("\n" + str(soup.title) + "\n" + "\n")
+            logfile.close()
 
 
 
@@ -149,3 +148,4 @@ COFFEE_PAGES = [
 #main(["http://www.crummy.com/software/BeautifulSoup/bs4/doc/"])
 #main(COFFEE_PAGES)
 main(["http://49thcoffee.com/collections/shop"])
+#main(["http://49thcoffee.com/products/santa-barbara-sampler"])
