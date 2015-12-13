@@ -14,23 +14,24 @@ class Tests(unittest.TestCase):
         """tests that you get html; TODO"""
         self.assertEqual(1, 1)
 
-def main(url_list):
+def main(url_list, rec_depth=0):
     """Let's get shit started"""
     for url in url_list:
         #print(url)
-        return parse_html_and_write(url)
+        return parse_html_and_write(url, rec_depth)
 
-def return_html(url="http://www.google.com"):
+def return_html(url):
     """print html of a given URL"""
     source_html = (requests.get(url)).text
     content = (source_html).encode("ascii", "ignore")
     return content #gives it back raw
     #return BeautifulSoup(content, "html.parser")
 
-def parse_html_and_write(url="http://www.google.com", rec_depth=0):
+def parse_html_and_write(url, rec_depth):
     """get soup of page and parse with html.parser; lxml didn't find all"""
     content = return_html(url)
     symbol_free_url = re.sub(r'[^\w]', ' ', url)
+    print("symbol_free_url= " + symbol_free_url)
     soup = BeautifulSoup(content, "html.parser")
     #log_links_on_page(soup, symbol_free_url)
     #wrapping in write function
@@ -42,16 +43,18 @@ def write_page(soup, symbol_free_url, url, rec_depth):
     write_logfile(soup, True)
     #TODO: makedir for log & scape data
     #os.makedirs('test/', exist_ok=True)
-    elements_searched = ["p", "span"]
+    elements_searched = ["p"]
     with open(
         symbol_free_url + " " + datetime.datetime.now().strftime(
-            "%Y-%m-%d_%H-%M-%S") + '.txt', 'w') as output:
+            "%Y-%m-%d_%H-%M-%S") + '.txt', 'a') as output:
         for element in elements_searched:
             if len(soup.find_all(element)) > 0:
                 for paragraph in soup.find_all(element):
                     para_text = paragraph.getText()
+                    #print("PARA TEXT = " + para_text)
                     if len(para_text.split()) > 5: #filter by >5 words
-                        output.write(para_text)
+                        output.write(para_text + "\n")
+                    #output.write(para_text)
                     else:
                         print("this wasn't long enough: " + para_text)
         recur(soup, rec_depth, url)
@@ -60,17 +63,20 @@ def write_page(soup, symbol_free_url, url, rec_depth):
 def recur(soup, rec_depth, url):
     """recursive searching of linked pages
     TODO: separate this function and refactor"""
+    rec_depth += 1
     parsed_uri = urlparse(url)
     domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
     print("domain = " + domain)
-    if rec_depth < 1 and len(soup.find_all("a")) > 0:
+    if rec_depth <= 2 and len(soup.find_all("a")) > 0:
         for link in soup.find_all("a", href=True):
             try:
-                print("recurring w/ link = " + link.get('href'))
                 try:
-                    parse_html_and_write(link.get('href'), rec_depth=1)
-                #TODO: clean up catch-all exception-catcher
-                except Exception:
+                    print("rec_depth = " + str(rec_depth)+" & link = " + link.get('href'))
+                    parse_html_and_write(link.get('href'), rec_depth)
+                #TODO: when MissingSchema try domain + url
+                except requests.exceptions.MissingSchema:
+                    print("requests - MissingSchema Error")
+                except UnicodeEncodeError:
                     pass
             except TypeError:
                 pass
@@ -98,8 +104,7 @@ def write_logfile(soup, default=True):
 
 
 
-"""full coffee sites for
-TODO: recursive scraping of full sites by regex of *URL*"""
+"""full coffee sites for reference"""
 SITES = [
     "http://49thcoffee.com/",
     "http://barnine.us/",
@@ -134,6 +139,7 @@ SITES = [
 ]
 
 """products pages for coffee roasters"""
+#TODO: finish adding these
 COFFEE_PAGES = [
     "http://49thcoffee.com/collections/shop",
     "http://barnine.us/collections/all",
