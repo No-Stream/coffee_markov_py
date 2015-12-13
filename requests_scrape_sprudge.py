@@ -16,6 +16,7 @@ class Tests(unittest.TestCase):
 def main(url_list):
     """Let's get shit started"""
     for url in url_list:
+        #print(url)
         return parse_html_and_write(url)
 
 def return_html(url="http://www.google.com"):
@@ -46,24 +47,34 @@ def write_page(soup, symbol_free_url, url, rec_depth):
                 para_text = paragraph.getText()
                 if len(para_text.split()) > 5: #filter by >5 words
                     f.write(para_text)
+                else:
+                    print("this wasn't long enough: " + para_text)
+        recur(soup, rec_depth, url)
+        f.close()
 
-        def recur(soup, rec_depth, default=True):
+def recur(soup, rec_depth, url):
             """recursive searching of linked pages
             TODO: separate this function and refactor"""
             parsed_uri = urlparse(url)
             domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
-            print("parsed: " + domain)
-            if default and rec_depth < 1 and len(soup.find_all("a")) > 0:
+            print("domain = " + domain)
+            if rec_depth < 1 and len(soup.find_all("a")) > 0:
+                #print("found an <a>")
                 for link in soup.find_all("a", href=True):
+                    #print(link)
                     try:
-                        if re.match(domain + r".[^\s]*", link.get('href')):
-                            #print(link.get('href'))
-                            rec_depth += 1
-                            parse_html_and_write(link.get('href'), rec_depth)
+                        #print(link.get('href'))
+                        #if re.match(domain + r".[^\s]*", link.get('href')):
+                        if True: #re.match(domain, link.get('href')):
+                            print("recurring w/ link = " + link.get('href'))
+                            #rec_depth += 1
+                            try:
+                                parse_html_and_write(link.get('href'), rec_depth=1)
+                            #except MissingSchema:
+                            except Exception as e:
+                                pass
                     except TypeError:
                         pass
-        recur(soup, rec_depth, True)
-        f.close()
 
 def log_links_on_page(soup, symbol_free_url):
     """print links on page to log file"""
@@ -127,7 +138,14 @@ SITES = [
 COFFEE_PAGES = [
     "http://49thcoffee.com/collections/shop",
     "http://barnine.us/collections/all",
+    "https://bluebottlecoffee.com/store/coffee",
+    "http://store.ceremonycoffee.com/coffees/",
+    "https://counterculturecoffee.com/store/coffee:",
+    "http://www.dogwoodcoffee.com/collections/coffee"
+
 ]
 
 #main('http://www.gutenberg.org/files/216/216-h/216-h.htm')
-main(["http://www.crummy.com/software/BeautifulSoup/bs4/doc/"])
+#main(["http://www.crummy.com/software/BeautifulSoup/bs4/doc/"])
+#main(COFFEE_PAGES)
+main(["http://49thcoffee.com/collections/shop"])
