@@ -1,10 +1,11 @@
 """Scraping sprudge-linked coffee sites"""
 import unittest
+#import multiprocessing
+#from time import sleep
 from datetime import datetime
 from re import sub
 import os.path
 from string import printable
-from multiprocessing import Pool, freeze_support
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import requests
@@ -19,31 +20,33 @@ class Tests(unittest.TestCase):
 
 def main(url_list, rec_depth=0):
     """Let's get shit started"""
-    if __name__ == '__main__':
-        freeze_support()
+    #if __name__ == '__main__':
+    #    multiprocessing.freeze_support()
+    #use of shared session dramatically reduces 429 errors and increases speed
+    this_session = requests.Session()
     for url in url_list:
-        parse_html_and_write(url, rec_depth)
+        parse_html_and_write(url, rec_depth, this_session)
 
-def return_html(url):
+def return_html(url, this_session):
     """print html of a given URL"""
-    source_html = (requests.get(url)).text
+    source_html = (this_session.get(url)).text
     #content = (source_html).encode("ascii", "ignore")
     content = ''.join([x for x in source_html if x in printable])
     return content #gives it back raw
     #return BeautifulSoup(content, "html.parser")
 
-def parse_html_and_write(url, rec_depth):
+def parse_html_and_write(url, rec_depth, this_session):
     """get soup of page and parse with html.parser; lxml didn't find all"""
-    content = return_html(url)
+    content = return_html(url, this_session)
     symbol_free_url = remove_symbols(url)
     print("symbol_free_url= " + symbol_free_url)
     soup = BeautifulSoup(content, "html.parser")
     #log_links_on_page(soup, symbol_free_url)
     #wrapping in write function
-    write_page(soup, symbol_free_url, url, rec_depth)
+    write_page(soup, symbol_free_url, url, rec_depth, this_session)
 
 
-def write_page(soup, symbol_free_url, url, rec_depth):
+def write_page(soup, symbol_free_url, url, rec_depth, this_session):
     """write page to text file"""
     write_logfile(soup, True)
     #TODO: makedir for log & scape data
@@ -66,36 +69,41 @@ def write_page(soup, symbol_free_url, url, rec_depth):
                                 pass
                         #else:
                         #    print("too short: " + para_text)
-            recur(soup, rec_depth, url)
+            recur(soup, rec_depth, url, this_session)
             output.close()
     #TODO: optimize by moving handling of redundant files to recur clause
     except FileExistsError:
         pass #file already exists; skipping
 
-def recur(soup, rec_depth, url):
+def recur(soup, rec_depth, url, this_session):
     """recursive searching of linked pages
     TODO: separate this function and refactor"""
     rec_depth += 1
     parsed_uri = urlparse(url)
     domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
     print("domain = " + domain)
-    #TODO: ignore these domains:
-    ignored_domains = ["twitter", "facebook", "google", "instagram", "apple",
-                       "youtube", "pinterest"]
+    #TODO: ignore these terms:
+    ignored_terms = ["twitter", "facebook", "google", "instagram", "apple", "pinterest",
+                     "youtube", "pinterest", "account", "login", "register",
+                     "cart", "about", "contact", "wholesale", "blog", "careers",
+                     "learn", "location", "locations", "tea", "education"]
     if rec_depth <= 2 and len(soup.find_all("a")) > 0:
         #if any(word in domain for ignored_domain in ignored_domains):
         #    print("any domain "+ignored_domain)
-        freeze_support()
-        rec_pool = Pool(4)
+        #multiprocessing.freeze_support()
+        #rec_pool = multiprocessing.Pool(4)
         for link in soup.find_all("a", href=True):
             url = link.get('href')
             symbol_free_url = remove_symbols(url)
             if not os.path.isfile(symbol_free_url + " " + datetime.now().strftime(
-                    "%Y-%m-%d_") + '.txt'):
+                    "%Y-%m-%d_") + '.txt') and not any(
+                        word in ignored_terms for word in symbol_free_url):
                 try:
                     print("rec_depth = " + str(rec_depth)+"; processing " + url)
-                    #parse_html_and_write(link.get('href'), rec_depth)
-                    rec_pool.apply_async(parse_html_and_write(url, rec_depth))
+                    #trying sleep here to reduce 429 errors
+                    #sleep(1)
+                    #rec_pool.apply_async(parse_html_and_write(url, rec_depth, this_session))
+                    parse_html_and_write(url, rec_depth, this_session)
                 except UnicodeEncodeError:
                     pass
                 except TypeError:
@@ -107,7 +115,10 @@ def recur(soup, rec_depth, url):
                     symbol_free_url = remove_symbols(url)
                     if not os.path.isfile(symbol_free_url + " " + datetime.now(
                         ).strftime("%Y-%m-%d_") + '.txt'):
-                        parse_html_and_write(url, rec_depth)
+                        #trying sleep here to reduce 429 errors
+                        #sleep(1)
+                        #rec_pool.apply_async(parse_html_and_write(url, rec_depth, this_session))
+                        parse_html_and_write(url, rec_depth, this_session)
 
 
 def log_links_on_page(soup, symbol_free_url):

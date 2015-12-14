@@ -58,8 +58,8 @@ COFFEE_PAGES = [
     "http://www.onyxcoffeelab.com/coffee",
     "https://www.philsebastian.com/shop/coffee/",
     "http://populace.coffee/collections/all-offerings",
-    "http://store.ptscoffee.com/coffees/"
-    "http://www.reanimatorcoffee.com/store/?category=Coffee"
+    "http://store.ptscoffee.com/coffees/",
+    "http://www.reanimatorcoffee.com/store/?category=Coffee",
     "https://squareup.com/market/revelatorcoffee",
     "https://www.sharecoffeeroasters.com/coffees-subscription-choices",
     "http://spyhousecoffee.com/pages/offerings",
