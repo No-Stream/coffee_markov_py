@@ -4,6 +4,7 @@ import datetime
 import re
 #import os.path
 from string import printable
+from multiprocessing import Pool, freeze_support
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import requests
@@ -18,9 +19,10 @@ class Tests(unittest.TestCase):
 
 def main(url_list, rec_depth=0):
     """Let's get shit started"""
+    if __name__ == '__main__':
+        freeze_support()
     for url in url_list:
-        #print(url)
-        return parse_html_and_write(url, rec_depth)
+        parse_html_and_write(url, rec_depth)
 
 def return_html(url):
     """print html of a given URL"""
@@ -62,8 +64,8 @@ def write_page(soup, symbol_free_url, url, rec_depth):
                             #and yet this excpetion handling is needed...
                             except UnicodeEncodeError:
                                 pass
-                        else:
-                            print("too short: " + para_text)
+                        #else:
+                        #    print("too short: " + para_text)
             recur(soup, rec_depth, url)
             output.close()
     #TODO: optimize by moving handling of redundant files to recur clause
@@ -77,20 +79,28 @@ def recur(soup, rec_depth, url):
     parsed_uri = urlparse(url)
     domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
     print("domain = " + domain)
+    ignored_domains = ["twitter", "facebook", "google", "instagram", "apple", "youtube"]
     if rec_depth <= 2 and len(soup.find_all("a")) > 0:
+        #if any(word in domain for ignored_domain in ignored_domains):
+        #    print("any domain "+ignored_domain)
+        freeze_support()
+        rec_pool = Pool(4)
         for link in soup.find_all("a", href=True):
             try:
                 print("rec_depth = " + str(rec_depth)+"; processing " + link.get('href'))
-                parse_html_and_write(link.get('href'), rec_depth)
-            except requests.exceptions.MissingSchema:
-                #try:
-                parse_html_and_write(domain+link.get('href'), rec_depth)
-                #except:
-                #    print("undefined error, line 79")
+                #parse_html_and_write(link.get('href'), rec_depth)
+                rec_pool.apply_async(parse_html_and_write(link.get('href'), rec_depth))
             except UnicodeEncodeError:
                 pass
             except TypeError:
                 pass
+            except requests.exceptions.InvalidSchema:
+                pass
+            except requests.exceptions.MissingSchema:
+                #try:
+                parse_html_and_write(domain+link.get('href'), rec_depth)
+                #else:
+                #    print("ln 93 catchall: " + str(e))
 
 def log_links_on_page(soup, symbol_free_url):
     """print links on page to log file"""
@@ -119,5 +129,5 @@ def write_logfile(soup, default=True):
 #main(COFFEE_PAGES)
 #main(["http://49thcoffee.com/collections/shop"])
 #main(["http://49thcoffee.com/products/santa-barbara-sampler"])
-main(scrape_sources.EXAMPLE)
-#main(scrape_sources.COFFEE_PAGES)
+#main(scrape_sources.EXAMPLE)
+main(scrape_sources.COFFEE_PAGES)

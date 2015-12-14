@@ -62,10 +62,14 @@ COFFEE_PAGES = [
     "http://www.reanimatorcoffee.com/store/?category=Coffee"
     "https://squareup.com/market/revelatorcoffee",
     "https://www.sharecoffeeroasters.com/coffees-subscription-choices",
-    "http://spyhousecoffee.com/pages/offerings"
-    "https://www.stumptowncoffee.com/products"
-    "https://www.tobysestate.com.au/store/coffee.html"
-    "http://www.tonyscoffee.com/shop/product-category/coffee/"
-    "http://www.vervecoffeeroasters.com/collections/coffee"
+    "http://spyhousecoffee.com/pages/offerings",
+    "https://www.stumptowncoffee.com/products",
+    "https://www.tobysestate.com.au/store/coffee.html",
+    "http://www.tonyscoffee.com/shop/product-category/coffee/",
+    "http://www.vervecoffeeroasters.com/collections/coffee",
+    "http://wateravenuecoffee.com/collections/beans"
+]
+MINI_COFFEE_PAGES = [
+    "http://www.vervecoffeeroasters.com/collections/coffee",
     "http://wateravenuecoffee.com/collections/beans"
 ]
