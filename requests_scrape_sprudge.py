@@ -1,8 +1,8 @@
 """Scraping sprudge-linked coffee sites"""
 import unittest
-import datetime
-import re
-#import os.path
+from datetime import datetime
+from re import sub
+import os.path
 from string import printable
 from multiprocessing import Pool, freeze_support
 from urllib.parse import urlparse
@@ -35,7 +35,7 @@ def return_html(url):
 def parse_html_and_write(url, rec_depth):
     """get soup of page and parse with html.parser; lxml didn't find all"""
     content = return_html(url)
-    symbol_free_url = re.sub(r'[^\w]', ' ', url)
+    symbol_free_url = remove_symbols(url)
     print("symbol_free_url= " + symbol_free_url)
     soup = BeautifulSoup(content, "html.parser")
     #log_links_on_page(soup, symbol_free_url)
@@ -51,7 +51,7 @@ def write_page(soup, symbol_free_url, url, rec_depth):
     elements_searched = ["p"]
     try:
         with open(
-            symbol_free_url + " " + datetime.datetime.now().strftime(
+            symbol_free_url + " " + datetime.now().strftime(
                 "%Y-%m-%d_") + '.txt', 'x') as output:
             for element in elements_searched:
                 if len(soup.find_all(element)) > 0:
@@ -79,32 +79,40 @@ def recur(soup, rec_depth, url):
     parsed_uri = urlparse(url)
     domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
     print("domain = " + domain)
-    ignored_domains = ["twitter", "facebook", "google", "instagram", "apple", "youtube"]
+    #TODO: ignore these domains:
+    ignored_domains = ["twitter", "facebook", "google", "instagram", "apple",
+                       "youtube", "pinterest"]
     if rec_depth <= 2 and len(soup.find_all("a")) > 0:
         #if any(word in domain for ignored_domain in ignored_domains):
         #    print("any domain "+ignored_domain)
         freeze_support()
         rec_pool = Pool(4)
         for link in soup.find_all("a", href=True):
-            try:
-                print("rec_depth = " + str(rec_depth)+"; processing " + link.get('href'))
-                #parse_html_and_write(link.get('href'), rec_depth)
-                rec_pool.apply_async(parse_html_and_write(link.get('href'), rec_depth))
-            except UnicodeEncodeError:
-                pass
-            except TypeError:
-                pass
-            except requests.exceptions.InvalidSchema:
-                pass
-            except requests.exceptions.MissingSchema:
-                #try:
-                parse_html_and_write(domain+link.get('href'), rec_depth)
-                #else:
-                #    print("ln 93 catchall: " + str(e))
+            url = link.get('href')
+            symbol_free_url = remove_symbols(url)
+            if not os.path.isfile(symbol_free_url + " " + datetime.now().strftime(
+                    "%Y-%m-%d_") + '.txt'):
+                try:
+                    print("rec_depth = " + str(rec_depth)+"; processing " + url)
+                    #parse_html_and_write(link.get('href'), rec_depth)
+                    rec_pool.apply_async(parse_html_and_write(url, rec_depth))
+                except UnicodeEncodeError:
+                    pass
+                except TypeError:
+                    pass
+                except requests.exceptions.InvalidSchema:
+                    pass
+                except requests.exceptions.MissingSchema:
+                    url = domain+link.get('href')
+                    symbol_free_url = remove_symbols(url)
+                    if not os.path.isfile(symbol_free_url + " " + datetime.now(
+                        ).strftime("%Y-%m-%d_") + '.txt'):
+                        parse_html_and_write(url, rec_depth)
+
 
 def log_links_on_page(soup, symbol_free_url):
     """print links on page to log file"""
-    with open("LINKS: " + symbol_free_url + " " + datetime.datetime.now().strftime(
+    with open("LINKS: " + symbol_free_url + " " + datetime.now().strftime(
         "%Y-%m-%d_%H-%M-%S") + '.txt', 'w') as links_log:
         if len(soup.find_all("a")) > 0:
             for link in soup.find_all("a", href=True):
@@ -117,12 +125,16 @@ def write_logfile(soup, default=True):
     """write logfile of scraping operation"""
     if default:
         with open(
-            "SCRAPE_LOG" + " " + datetime.datetime.now().strftime(
+            "SCRAPE_LOG" + " " + datetime.now().strftime(
                 "%Y-%m-%d") + '.txt', 'a') as logfile:
-            logfile.write(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+            logfile.write(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
             logfile.write("\n" + str(soup.title) + "\n" + "\n")
             logfile.close()
 
+def remove_symbols(url):
+    """remove symbols from a URL"""
+    symbol_free_url = sub(r'[^\w]', ' ', url)
+    return symbol_free_url
 
 #main('http://www.gutenberg.org/files/216/216-h/216-h.htm')
 #main(["http://www.crummy.com/software/BeautifulSoup/bs4/doc/"])
