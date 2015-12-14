@@ -70,14 +70,16 @@ def recur(soup, rec_depth, url):
     if rec_depth <= 2 and len(soup.find_all("a")) > 0:
         for link in soup.find_all("a", href=True):
             try:
+                print("rec_depth = " + str(rec_depth)+" & link = " + link.get('href'))
+                parse_html_and_write(link.get('href'), rec_depth)
+            except requests.exceptions.MissingSchema:
                 try:
-                    print("rec_depth = " + str(rec_depth)+" & link = " + link.get('href'))
-                    parse_html_and_write(link.get('href'), rec_depth)
-                #TODO: when MissingSchema try domain + url
-                except requests.exceptions.MissingSchema:
-                    print("requests - MissingSchema Error")
-                except UnicodeEncodeError:
-                    pass
+                    #print(domain+link.get('href'))
+                    parse_html_and_write(domain+link.get('href'), rec_depth)
+                except:
+                    print("undefined error, line 79")
+            except UnicodeEncodeError:
+                pass
             except TypeError:
                 pass
 
@@ -104,7 +106,8 @@ def write_logfile(soup, default=True):
 
 
 
-"""full coffee sites for reference"""
+#"""full coffee sites for reference"""
+#TODO: move sites && coffee_pages to separate file
 SITES = [
     "http://49thcoffee.com/",
     "http://barnine.us/",
@@ -138,16 +141,38 @@ SITES = [
     "http://wateravenuecoffee.com/",
 ]
 
-"""products pages for coffee roasters"""
+"""coffee offerings pages for coffee roasters"""
 #TODO: finish adding these
 COFFEE_PAGES = [
-    "http://49thcoffee.com/collections/shop",
+    "http://49thcoffee.com/collections/coffee",
     "http://barnine.us/collections/all",
     "https://bluebottlecoffee.com/store/coffee",
     "http://store.ceremonycoffee.com/coffees/",
     "https://counterculturecoffee.com/store/coffee:",
-    "http://www.dogwoodcoffee.com/collections/coffee"
-
+    "http://www.dogwoodcoffee.com/collections/coffee",
+    "https://store.equatorcoffees.com/coffees/",
+    "http://www.fiveelephant.com/collections/shop",
+    "http://www.intelligentsiacoffee.com/products/coffee",
+    "http://joecoffeeshop.myshopify.com/collections/coffee",
+    "http://kaldiscoffee.com/collections/coffee",
+    "http://www.lacolombe.com/pages/coffee",
+    "https://madcapcoffee.com/buy/coffee/",
+    "http://mrespresso.com/coffee/",
+    "http://theroasters.com.au/coffee-at-the-northbridge-coffee-roasters/",
+    "http://www.olympiacoffee.com/collections/Coffees",
+    "http://www.onyxcoffeelab.com/coffee",
+    "https://www.philsebastian.com/shop/coffee/",
+    "http://populace.coffee/collections/all-offerings",
+    "http://store.ptscoffee.com/coffees/"
+    "http://www.reanimatorcoffee.com/store/?category=Coffee"
+    "https://squareup.com/market/revelatorcoffee",
+    "https://www.sharecoffeeroasters.com/coffees-subscription-choices",
+    "http://spyhousecoffee.com/pages/offerings"
+    "https://www.stumptowncoffee.com/products"
+    "https://www.tobysestate.com.au/store/coffee.html"
+    "http://www.tonyscoffee.com/shop/product-category/coffee/"
+    "http://www.vervecoffeeroasters.com/collections/coffee"
+    "http://wateravenuecoffee.com/collections/beans"
 ]
 
 #main('http://www.gutenberg.org/files/216/216-h/216-h.htm')
