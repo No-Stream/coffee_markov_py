@@ -2,10 +2,12 @@
 import unittest
 import datetime
 import re
-#import os
+#import os.path
+from string import printable
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import requests
+import scrape_sources
 
 
 class Tests(unittest.TestCase):
@@ -23,7 +25,8 @@ def main(url_list, rec_depth=0):
 def return_html(url):
     """print html of a given URL"""
     source_html = (requests.get(url)).text
-    content = (source_html).encode("ascii", "ignore")
+    #content = (source_html).encode("ascii", "ignore")
+    content = ''.join([x for x in source_html if x in printable])
     return content #gives it back raw
     #return BeautifulSoup(content, "html.parser")
 
@@ -44,21 +47,28 @@ def write_page(soup, symbol_free_url, url, rec_depth):
     #TODO: makedir for log & scape data
     #os.makedirs('test/', exist_ok=True)
     elements_searched = ["p"]
-    with open(
-        symbol_free_url + " " + datetime.datetime.now().strftime(
-            "%Y-%m-%d_%H-%M-%S") + '.txt', 'a') as output:
-        for element in elements_searched:
-            if len(soup.find_all(element)) > 0:
-                for paragraph in soup.find_all(element):
-                    para_text = paragraph.getText()
-                    #print("PARA TEXT = " + para_text)
-                    if len(para_text.split()) > 5: #filter by >5 words
-                        output.write(para_text + "\n")
-                    #output.write(para_text)
-                    else:
-                        print("this wasn't long enough: " + para_text)
-        recur(soup, rec_depth, url)
-        output.close()
+    try:
+        with open(
+            symbol_free_url + " " + datetime.datetime.now().strftime(
+                "%Y-%m-%d_") + '.txt', 'x') as output:
+            for element in elements_searched:
+                if len(soup.find_all(element)) > 0:
+                    for paragraph in soup.find_all(element):
+                        para_text = paragraph.getText()
+                        if len(para_text.split()) > 5: #filter by >5 words
+                            try:
+                                output.write(para_text + "\n")
+                            #soup has already been filtered for printable
+                            #and yet this excpetion handling is needed...
+                            except UnicodeEncodeError:
+                                pass
+                        else:
+                            print("too short: " + para_text)
+            recur(soup, rec_depth, url)
+            output.close()
+    #TODO: optimize by moving handling of redundant files to recur clause
+    except FileExistsError:
+        pass #file already exists; skipping
 
 def recur(soup, rec_depth, url):
     """recursive searching of linked pages
@@ -70,14 +80,13 @@ def recur(soup, rec_depth, url):
     if rec_depth <= 2 and len(soup.find_all("a")) > 0:
         for link in soup.find_all("a", href=True):
             try:
-                print("rec_depth = " + str(rec_depth)+" & link = " + link.get('href'))
+                print("rec_depth = " + str(rec_depth)+"; processing " + link.get('href'))
                 parse_html_and_write(link.get('href'), rec_depth)
             except requests.exceptions.MissingSchema:
-                try:
-                    #print(domain+link.get('href'))
-                    parse_html_and_write(domain+link.get('href'), rec_depth)
-                except:
-                    print("undefined error, line 79")
+                #try:
+                parse_html_and_write(domain+link.get('href'), rec_depth)
+                #except:
+                #    print("undefined error, line 79")
             except UnicodeEncodeError:
                 pass
             except TypeError:
@@ -105,78 +114,10 @@ def write_logfile(soup, default=True):
             logfile.close()
 
 
-
-#"""full coffee sites for reference"""
-#TODO: move sites && coffee_pages to separate file
-SITES = [
-    "http://49thcoffee.com/",
-    "http://barnine.us/",
-    "https://bluebottlecoffee.com/",
-    "http://ceremonycoffee.com/",
-    "https://counterculturecoffee.com/",
-    "http://www.dogwoodcoffee.com/",
-    "http://www.equatorcoffees.com/",
-    "http://www.fiveelephant.com/",
-    "http://www.intelligentsiacoffee.com/",
-    "http://www.joenewyork.com/",
-    "http://kaldiscoffee.com/",
-    "http://www.lacolombe.com/",
-    "http://madcapcoffee.com/",
-    "http://mrespresso.com/",
-    "http://theroasters.com.au/",
-    "http://www.olympiacoffee.com/",
-    "http://www.onyxcoffeelab.com/",
-    "http://www.pcpfx.com/",
-    "https://www.philsebastian.com/",
-    "http://populace.coffee/",
-    "http://www.ptscoffee.com/",
-    "http://www.reanimatorcoffee.com/",
-    "http://revelatorcoffee.com/",
-    "https://www.sharecoffeeroasters.com/",
-    "http://spyhousecoffee.com/",
-    "http://www.stumptowncoffee.com/",
-    "http://www.tobysestate.com.au/",
-    "http://www.tonyscoffee.com/",
-    "http://www.vervecoffeeroasters.com/",
-    "http://wateravenuecoffee.com/",
-]
-
-"""coffee offerings pages for coffee roasters"""
-#TODO: finish adding these
-COFFEE_PAGES = [
-    "http://49thcoffee.com/collections/coffee",
-    "http://barnine.us/collections/all",
-    "https://bluebottlecoffee.com/store/coffee",
-    "http://store.ceremonycoffee.com/coffees/",
-    "https://counterculturecoffee.com/store/coffee:",
-    "http://www.dogwoodcoffee.com/collections/coffee",
-    "https://store.equatorcoffees.com/coffees/",
-    "http://www.fiveelephant.com/collections/shop",
-    "http://www.intelligentsiacoffee.com/products/coffee",
-    "http://joecoffeeshop.myshopify.com/collections/coffee",
-    "http://kaldiscoffee.com/collections/coffee",
-    "http://www.lacolombe.com/pages/coffee",
-    "https://madcapcoffee.com/buy/coffee/",
-    "http://mrespresso.com/coffee/",
-    "http://theroasters.com.au/coffee-at-the-northbridge-coffee-roasters/",
-    "http://www.olympiacoffee.com/collections/Coffees",
-    "http://www.onyxcoffeelab.com/coffee",
-    "https://www.philsebastian.com/shop/coffee/",
-    "http://populace.coffee/collections/all-offerings",
-    "http://store.ptscoffee.com/coffees/"
-    "http://www.reanimatorcoffee.com/store/?category=Coffee"
-    "https://squareup.com/market/revelatorcoffee",
-    "https://www.sharecoffeeroasters.com/coffees-subscription-choices",
-    "http://spyhousecoffee.com/pages/offerings"
-    "https://www.stumptowncoffee.com/products"
-    "https://www.tobysestate.com.au/store/coffee.html"
-    "http://www.tonyscoffee.com/shop/product-category/coffee/"
-    "http://www.vervecoffeeroasters.com/collections/coffee"
-    "http://wateravenuecoffee.com/collections/beans"
-]
-
 #main('http://www.gutenberg.org/files/216/216-h/216-h.htm')
 #main(["http://www.crummy.com/software/BeautifulSoup/bs4/doc/"])
 #main(COFFEE_PAGES)
-main(["http://49thcoffee.com/collections/shop"])
+#main(["http://49thcoffee.com/collections/shop"])
 #main(["http://49thcoffee.com/products/santa-barbara-sampler"])
+main(scrape_sources.EXAMPLE)
+#main(scrape_sources.COFFEE_PAGES)
