@@ -1,5 +1,6 @@
 """Scraping sprudge-linked coffee sites"""
 import unittest
+import logging
 #import multiprocessing
 #from time import sleep
 from datetime import datetime
@@ -11,6 +12,8 @@ from bs4 import BeautifulSoup
 import requests
 import scrape_sources
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Tests(unittest.TestCase):
     """unittests; TODO"""
@@ -31,7 +34,7 @@ def return_html(url, this_session):
     """print html of a given URL"""
     source_html = (this_session.get(url)).text
     #content = (source_html).encode("ascii", "ignore")
-    content = ''.join([x for x in source_html if x in printable])
+    content = ''.join([x for x in source_html if x in printable and not x.isdigit()])
     return content #gives it back raw
     #return BeautifulSoup(content, "html.parser")
 
@@ -39,7 +42,7 @@ def parse_html_and_write(url, rec_depth, this_session):
     """get soup of page and parse with html.parser; lxml didn't find all"""
     content = return_html(url, this_session)
     symbol_free_url = remove_symbols(url)
-    print("symbol_free_url= " + symbol_free_url)
+    logger.info("symbol_free_url= " + symbol_free_url)
     soup = BeautifulSoup(content, "html.parser")
     #log_links_on_page(soup, symbol_free_url)
     #wrapping in write function
@@ -60,18 +63,17 @@ def write_page(soup, symbol_free_url, url, rec_depth, this_session):
                 if len(soup.find_all(element)) > 0:
                     for paragraph in soup.find_all(element):
                         para_text = paragraph.getText()
-                        if len(para_text.split()) > 5: #filter by >5 words
+                        if len(para_text.split()) > 8: #filter by >8 words
                             try:
                                 output.write(para_text + "\n")
                             #soup has already been filtered for printable
                             #and yet this excpetion handling is needed...
                             except UnicodeEncodeError:
-                                pass
+                                logger.warning("handled unicode encode error, line 72")
                         #else:
-                        #    print("too short: " + para_text)
+                        #    logger.debug("too short: " + para_text)
             recur(soup, rec_depth, url, this_session)
             output.close()
-    #TODO: optimize by moving handling of redundant files to recur clause
     except FileExistsError:
         pass #file already exists; skipping
 
@@ -81,43 +83,47 @@ def recur(soup, rec_depth, url, this_session):
     rec_depth += 1
     parsed_uri = urlparse(url)
     domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
-    print("domain = " + domain)
+    logger.info("domain = " + domain)
     #TODO: ignore these terms:
     ignored_terms = ["twitter", "facebook", "google", "instagram", "apple", "pinterest",
                      "youtube", "pinterest", "account", "login", "register",
                      "cart", "about", "contact", "wholesale", "blog", "careers",
                      "learn", "location", "locations", "tea", "education"]
+    def has_ignored_terms(text):
+        """see above"""
+        return any(word in ignored_terms for word in text.split(" "))
     if rec_depth <= 2 and len(soup.find_all("a")) > 0:
-        #if any(word in domain for ignored_domain in ignored_domains):
-        #    print("any domain "+ignored_domain)
         #multiprocessing.freeze_support()
         #rec_pool = multiprocessing.Pool(4)
         for link in soup.find_all("a", href=True):
             url = link.get('href')
             symbol_free_url = remove_symbols(url)
-            if not os.path.isfile(symbol_free_url + " " + datetime.now().strftime(
-                    "%Y-%m-%d_") + '.txt') and not any(
-                        word in ignored_terms for word in symbol_free_url):
+            if has_ignored_terms(symbol_free_url):
+                logger.info("skipped ignored_term" + "word = ???" + "url = " + symbol_free_url)
+            elif not os.path.isfile(symbol_free_url + " " + datetime.now().strftime(
+                    "%Y-%m-%d_") + '.txt'):
                 try:
-                    print("rec_depth = " + str(rec_depth)+"; processing " + url)
+                    logger.info("rec_depth = " + str(rec_depth)+"; processing " + url)
                     #trying sleep here to reduce 429 errors
                     #sleep(1)
                     #rec_pool.apply_async(parse_html_and_write(url, rec_depth, this_session))
                     parse_html_and_write(url, rec_depth, this_session)
                 except UnicodeEncodeError:
-                    pass
+                    logger.warning("handled unicode error, line 108")
                 except TypeError:
-                    pass
+                    logger.warning("handled type error, line 110")
                 except requests.exceptions.InvalidSchema:
-                    pass
+                    logger.warning("handled requests.exceptions.InvalidSchema, line 112")
                 except requests.exceptions.MissingSchema:
                     url = domain+link.get('href')
                     symbol_free_url = remove_symbols(url)
                     if not os.path.isfile(symbol_free_url + " " + datetime.now(
-                        ).strftime("%Y-%m-%d_") + '.txt'):
+                    ).strftime("%Y-%m-%d_") + '.txt'):
                         #trying sleep here to reduce 429 errors
                         #sleep(1)
                         #rec_pool.apply_async(parse_html_and_write(url, rec_depth, this_session))
+                        logger.info(
+                            "rec_depth = " + str(rec_depth)+"; processing link w/o TLD " + url)
                         parse_html_and_write(url, rec_depth, this_session)
 
 
@@ -149,8 +155,6 @@ def remove_symbols(url):
 
 #main('http://www.gutenberg.org/files/216/216-h/216-h.htm')
 #main(["http://www.crummy.com/software/BeautifulSoup/bs4/doc/"])
-#main(COFFEE_PAGES)
 #main(["http://49thcoffee.com/collections/shop"])
-#main(["http://49thcoffee.com/products/santa-barbara-sampler"])
 #main(scrape_sources.EXAMPLE)
 main(scrape_sources.COFFEE_PAGES)
