@@ -5,6 +5,8 @@ import re
 import random
 import sys
 
+#cProfile this file with e.g.  python -m cProfile ./hrs_sentence_generator.py .\0CONCAT_2015-12-16_.txt 3
+
 # These mappings can get fairly large -- they're stored globally to
 # save copying time.
 
@@ -54,6 +56,7 @@ def wordlist(filename):
 # words.
 # Given history = ["the", "rain", "in"] and word = "Spain", we add "Spain" to
 # the entries for ["the", "rain", "in"], ["rain", "in"], and ["in"].
+#FIX: cProfile says lots of time is spent here
 def addItemToTempMapping(history, word):
     global tempMapping
     while len(history) > 0:
@@ -69,6 +72,7 @@ def addItemToTempMapping(history, word):
         history = history[1:]
 
 # Building and normalizing the mapping.
+#FIX: cProfile says lots of time is spent here
 def buildMapping(wordlist, markovLength):
     global tempMapping
     starts.append(wordlist [0])
@@ -87,6 +91,12 @@ def buildMapping(wordlist, markovLength):
         total = sum(followset.values())
         # Normalizing here:
         mapping[first] = dict([(k, v / total) for k, v in followset.items()])
+    with open(
+        "tempMapping " + datetime.now().strftime(
+            "%Y-%m-%d_") + '.txt', 'x') as output:
+            for line in tempMapping:
+                try:
+                    output.write(para_text + "\n")
 
 # Returns the next word in the sentence (chosen randomly),
 # given the previous ones.

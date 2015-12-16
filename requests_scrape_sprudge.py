@@ -6,6 +6,7 @@ import logging
 from datetime import datetime
 from re import sub
 import os.path
+import os
 from string import printable
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
@@ -88,7 +89,7 @@ def recur(soup, rec_depth, url, this_session):
     ignored_terms = ["twitter", "facebook", "google", "instagram", "apple", "pinterest",
                      "youtube", "pinterest", "account", "login", "register",
                      "cart", "about", "contact", "wholesale", "blog", "careers",
-                     "learn", "location", "locations", "tea", "education"]
+                     "learn", "location", "locations", "tea", "education", "squareup"]
     def has_ignored_terms(text):
         """see above"""
         return any(word in ignored_terms for word in text.split(" "))
@@ -99,7 +100,7 @@ def recur(soup, rec_depth, url, this_session):
             url = link.get('href')
             symbol_free_url = remove_symbols(url)
             if has_ignored_terms(symbol_free_url):
-                logger.info("skipped ignored_term" + "word = ???" + "url = " + symbol_free_url)
+                logger.info("skipped ignored_term" + "word = ??? " + "url = " + symbol_free_url)
             elif not os.path.isfile(symbol_free_url + " " + datetime.now().strftime(
                     "%Y-%m-%d_") + '.txt'):
                 try:

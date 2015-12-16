@@ -39,6 +39,7 @@ SITES = [
 """coffee offerings pages for coffee roasters"""
 #TODO: finish adding these
 COFFEE_PAGES = [
+#from Sprudge sponsors:
     "http://49thcoffee.com/collections/coffee",
     "http://barnine.us/collections/all",
     "https://bluebottlecoffee.com/store/coffee",
@@ -68,6 +69,19 @@ COFFEE_PAGES = [
     "http://www.tonyscoffee.com/shop/product-category/coffee/",
     "http://www.vervecoffeeroasters.com/collections/coffee",
     "http://wateravenuecoffee.com/collections/beans"
+    #added to expand markov dictionary size: sf, pdx, nordic
+    "https://www.sightglasscoffee.com/coffees",
+    "http://fourbarrelcoffee.com/product-category/coffees/",
+    "http://ritual.myshopify.com/collections/coffee",
+    "http://www.heartroasters.com/collections/beans",
+    "http://coavacoffee.com/pages/shop",
+    "https://timwendelboe.no/coffee",
+    "http://www.dropcoffee.com/collections/beans",
+    #added from web mentions
+    "http://www.klatchroasting.com/All_Coffees_s/389.htm",
+    "http://shop.parlorcoffee.com/",
+    "http://rubycoffeeroasters.com/",
+    "https://varietycoffeeroasters.com/?page_id=493"
 ]
 MINI_COFFEE_PAGES = [
     "http://www.vervecoffeeroasters.com/collections/coffee",
