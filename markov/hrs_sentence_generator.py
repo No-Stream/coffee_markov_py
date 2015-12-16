@@ -4,6 +4,7 @@
 import re
 import random
 import sys
+from datetime import datetime
 
 #cProfile this file with e.g.  python -m cProfile ./hrs_sentence_generator.py .\0CONCAT_2015-12-16_.txt 3
 
@@ -91,12 +92,9 @@ def buildMapping(wordlist, markovLength):
         total = sum(followset.values())
         # Normalizing here:
         mapping[first] = dict([(k, v / total) for k, v in followset.items()])
-    with open(
-        "tempMapping " + datetime.now().strftime(
-            "%Y-%m-%d_") + '.txt', 'x') as output:
-            for line in tempMapping:
-                try:
-                    output.write(para_text + "\n")
+    """with open("tempMapping " + datetime.now().strftime("%Y-%m-%d_") + '.txt', 'x') as output:
+        for line in mapping:
+            output.write(line)"""
 
 # Returns the next word in the sentence (chosen randomly),
 # given the previous ones.
@@ -143,7 +141,10 @@ def main():
 
     buildMapping(wordlist(filename), markovLength)
     for i in range(10):
-        print(genSentence(markovLength))
+        with open("output_" + str(i) + datetime.now().strftime(
+        "%Y-%m-%d_") + '.txt', 'x') as output:
+            for i in range(1000):
+                output.write(genSentence(markovLength) + "\n")
 
 if __name__ == "__main__":
     main()
