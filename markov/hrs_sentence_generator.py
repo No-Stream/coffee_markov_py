@@ -1,12 +1,15 @@
 """lightly modified from https://github.com/hrs/markov-sentence-generator"""
 #!/usr/bin/python
 
+#import pyximport; pyximport.install(pyimport = True)
 import re
 import random
 import sys
+import simplejson as json
 from datetime import datetime
 
-#cProfile this file with e.g.  python -m cProfile ./hrs_sentence_generator.py .\0CONCAT_2015-12-16_.txt 3
+#cProfile this file with e.g.:
+#python -m cProfile -s 'time' ./hrs_sentence_generator.py .\0CONCAT_2015-12-16_.txt 3
 
 # These mappings can get fairly large -- they're stored globally to
 # save copying time.
@@ -57,7 +60,7 @@ def wordlist(filename):
 # words.
 # Given history = ["the", "rain", "in"] and word = "Spain", we add "Spain" to
 # the entries for ["the", "rain", "in"], ["rain", "in"], and ["in"].
-#FIX: cProfile says lots of time is spent here
+#THIS CODE IS SLOW. It needs to be cached.
 def addItemToTempMapping(history, word):
     global tempMapping
     while len(history) > 0:
@@ -73,7 +76,7 @@ def addItemToTempMapping(history, word):
         history = history[1:]
 
 # Building and normalizing the mapping.
-#FIX: cProfile says lots of time is spent here
+#THIS CODE IS SLOW. It needs to be cached.
 def buildMapping(wordlist, markovLength):
     global tempMapping
     starts.append(wordlist [0])
@@ -92,9 +95,9 @@ def buildMapping(wordlist, markovLength):
         total = sum(followset.values())
         # Normalizing here:
         mapping[first] = dict([(k, v / total) for k, v in followset.items()])
-    """with open("tempMapping " + datetime.now().strftime("%Y-%m-%d_") + '.txt', 'x') as output:
-        for line in mapping:
-            output.write(line)"""
+    with open("tempMapping " + datetime.now().strftime("%Y-%m-%d_") + '.txt', 'x') as output:
+        for line in mapping[first]:
+            output.write(line)
 
 # Returns the next word in the sentence (chosen randomly),
 # given the previous ones.
@@ -138,8 +141,13 @@ def main():
     markovLength = 1
     if len (sys.argv) == 3:
         markovLength = int(sys.argv [2])
-
     buildMapping(wordlist(filename), markovLength)
+    """try:
+        with open('markov_dict'+datetime.now().strftime(
+        "%Y-%m-%d_") + ".json", 'x') as dict_file:
+            json.dump(tempMapping, fp)
+    except FileExistsError:
+        print(".json db already exists; skipping")"""
     for i in range(10):
         with open("output_" + str(i) + datetime.now().strftime(
         "%Y-%m-%d_") + '.txt', 'x') as output:
