@@ -1,6 +1,7 @@
 """analyze sentiment using super simple counting model
 positive & negative valences pulled from bing lu et al."""
 
+from datetime import datetime
 import nltk
 from nltk import word_tokenize
 from nltk.corpus import stopwords
@@ -32,12 +33,13 @@ def imp_count_valence(input_,pos_words,neg_words):
     print("ratio pos:neg " + str(pos_count/neg_count))
 
 def func_count_valence(input_,pos_words,neg_words):
-    """hopefully slightly more efficient functional solution"""
+    """same results & no faster, but at least it's a little prettier"""
     valent_words = [word for word in input_ if word in pos_words or word in neg_words]
     filter_pos = [word for word in valent_words if word in pos_words]
     filter_neg = [word for word in valent_words if word in neg_words]
-    print(filter_pos)
-    print(filter_neg)
+    print("sentiment analysis @ time = " + datetime.now().strftime("%Y-%m-%d_"))
+    print("pos_count = " + str(len(filter_pos)) + " neg_count = " + str(len(filter_neg)))
+    print("ratio pos:neg " + str(len(filter_pos)/len(filter_neg)))
 
-imp_count_valence(input_,pos_words,neg_words)
-#func_count_valence(input_,pos_words,neg_words)
+#imp_count_valence(input_,pos_words,neg_words)
+func_count_valence(input_,pos_words,neg_words)
