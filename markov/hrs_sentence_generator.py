@@ -5,7 +5,9 @@
 import re
 import random
 import sys
-import simplejson as json
+import os
+import ast
+import json
 from datetime import datetime
 
 #cProfile this file with e.g.:
@@ -79,25 +81,35 @@ def addItemToTempMapping(history, word):
 #THIS CODE IS SLOW. It needs to be cached.
 def buildMapping(wordlist, markovLength):
     global tempMapping
-    starts.append(wordlist [0])
-    for i in range(1, len(wordlist) - 1):
-        if i <= markovLength:
-            history = wordlist[: i + 1]
-        else:
-            history = wordlist[i - markovLength + 1 : i + 1]
-        follow = wordlist[i + 1]
-        # if the last elt was a period, add the next word to the start list
-        if history[-1] == "." and follow not in ".,!?;":
-            starts.append(follow)
-        addItemToTempMapping(history, follow)
-    # Normalize the values in tempMapping, put them into mapping
-    for first, followset in tempMapping.items():
-        total = sum(followset.values())
-        # Normalizing here:
-        mapping[first] = dict([(k, v / total) for k, v in followset.items()])
-    with open("tempMapping " + datetime.now().strftime("%Y-%m-%d_") + '.txt', 'x') as output:
-        for line in mapping[first]:
-            output.write(line)
+    file_path = ("tempMapping " + datetime.now().strftime("%Y-%m-%d_") + '.txt')
+    if os.path.isfile(file_path):
+        json.load(open(file_path))
+        """with open(file_path, 'r') as dict_source:
+            string_ = dict_source.read()
+            print(string_)
+            #mapping = ast.literal_eval(string_)"""
+    else:
+        starts.append(wordlist [0])
+        for i in range(1, len(wordlist) - 1):
+            if i <= markovLength:
+                history = wordlist[: i + 1]
+            else:
+                history = wordlist[i - markovLength + 1 : i + 1]
+            follow = wordlist[i + 1]
+            # if the last elt was a period, add the next word to the start list
+            if history[-1] == "." and follow not in ".,!?;":
+                starts.append(follow)
+            addItemToTempMapping(history, follow)
+        # Normalize the values in tempMapping, put them into mapping
+        for first, followset in tempMapping.items():
+            total = sum(followset.values())
+            # Normalizing here:
+            mapping[first] = dict([(k, v / total) for k, v in followset.items()])
+            #caching to txt file
+            json.dumps(mapping, open(file_path, 'w'))
+        """with open(file_path, 'w+') as output:
+            for line in mapping:
+                output.write(str(line))"""
 
 # Returns the next word in the sentence (chosen randomly),
 # given the previous ones.
@@ -136,19 +148,12 @@ def main():
     if len(sys.argv) < 2:
         sys.stderr.write('Usage: ' + sys.argv [0] + ' text_source [chain_length=1]\n')
         sys.exit(1)
-
     filename = sys.argv[1]
     markovLength = 1
     if len (sys.argv) == 3:
         markovLength = int(sys.argv [2])
     buildMapping(wordlist(filename), markovLength)
-    """try:
-        with open('markov_dict'+datetime.now().strftime(
-        "%Y-%m-%d_") + ".json", 'x') as dict_file:
-            json.dump(tempMapping, fp)
-    except FileExistsError:
-        print(".json db already exists; skipping")"""
-    for i in range(10):
+    for i in range(1):
         with open("output_" + str(i) + datetime.now().strftime(
         "%Y-%m-%d_") + '.txt', 'x') as output:
             for i in range(1000):
