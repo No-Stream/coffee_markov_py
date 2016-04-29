@@ -1,6 +1,3 @@
-"""script to concatenate all text files in a directory
-thank you based stackoverflow"""
-
 import glob
 from send2trash import send2trash
 from datetime import datetime
@@ -11,7 +8,7 @@ def delete_empty_txts():
     """delete all empty text files first"""
     delete_bool = True
     for f in read_files:
-        with open(f, "r+") as infile:
+        with open(f, "r+", encoding="latin-1") as infile:
             for line in infile:
                 if line.rstrip():
                     delete_bool = False
@@ -21,7 +18,7 @@ def delete_empty_txts():
 
 def glob_append():
     """use glob to concatenate files"""
-    with open("0CONCAT_"+datetime.now().strftime(
+    with open("CONCAT_MARKOVIAN_"+datetime.now().strftime(
         "%Y-%m-%d_"), "wb") as outfile:
         for f in read_files:
             with open(f, "rb") as infile:
