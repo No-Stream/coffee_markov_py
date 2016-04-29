@@ -1,43 +1,6 @@
 """URLs to scrape"""
-EXAMPLE = [
-    "http://www.crummy.com/software/BeautifulSoup/bs4/doc/"
-]
 
-SITES = [
-    "http://49thcoffee.com/",
-    "http://barnine.us/",
-    "https://bluebottlecoffee.com/",
-    "http://ceremonycoffee.com/",
-    "https://counterculturecoffee.com/",
-    "http://www.dogwoodcoffee.com/",
-    "http://www.equatorcoffees.com/",
-    "http://www.fiveelephant.com/",
-    "http://www.intelligentsiacoffee.com/",
-    "http://www.joenewyork.com/",
-    "http://kaldiscoffee.com/",
-    "http://www.lacolombe.com/",
-    "http://madcapcoffee.com/",
-    "http://mrespresso.com/",
-    "http://theroasters.com.au/",
-    "http://www.olympiacoffee.com/",
-    "http://www.onyxcoffeelab.com/",
-    "http://www.pcpfx.com/",
-    "https://www.philsebastian.com/",
-    "http://populace.coffee/",
-    "http://www.ptscoffee.com/",
-    "http://www.reanimatorcoffee.com/",
-    "http://revelatorcoffee.com/",
-    "https://www.sharecoffeeroasters.com/",
-    "http://spyhousecoffee.com/",
-    "http://www.stumptowncoffee.com/",
-    "http://www.tobysestate.com.au/",
-    "http://www.tonyscoffee.com/",
-    "http://www.vervecoffeeroasters.com/",
-    "http://wateravenuecoffee.com/",
-]
 
-"""coffee offerings pages for coffee roasters"""
-#TODO: finish adding these
 COFFEE_PAGES = [
 #from Sprudge sponsors:
     "http://49thcoffee.com/collections/coffee",
@@ -83,7 +46,4 @@ COFFEE_PAGES = [
     "http://rubycoffeeroasters.com/",
     "https://varietycoffeeroasters.com/?page_id=493"
 ]
-MINI_COFFEE_PAGES = [
-    "http://www.vervecoffeeroasters.com/collections/coffee",
-    "http://wateravenuecoffee.com/collections/beans"
-]
+
