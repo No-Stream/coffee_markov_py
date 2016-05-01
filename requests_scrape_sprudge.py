@@ -2,7 +2,7 @@
 from datetime import datetime
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
-import os, os.path, re, requests, logging, scrape_sources
+import os, re, requests, logging, scrape_sources
 
 
 class Options():
