@@ -1,9 +1,8 @@
 """Scraping sprudge-linked coffee sites"""
-import os, os.path, re, requests, logging, scrape_sources
 from datetime import datetime
-from string import printable
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+import os, os.path, re, requests, logging, scrape_sources
 
 
 class Options():
@@ -32,7 +31,7 @@ def parse_html_and_write(rec_depth):
 def return_html(url):
     """print html of a given URL"""
     source_html = (Options.session.get(url)).text
-    content = ''.join([x for x in source_html if x in printable and not x.isdigit()])
+    content = ''.join([x for x in source_html if not x.isdigit()])
     return content
 
 def prepare_page(soup, rec_depth):
@@ -53,7 +52,7 @@ def handle_duplicate_pages(soup, rec_depth, elements_searched):
 def write_page_text(soup, rec_depth, elements_searched):
     with open( "raw_output/" +
         Options.symbol_free_url + " " + datetime.now().strftime(
-            "%Y-%m-%d_") + '.txt', 'x') as output:
+            "%Y-%m-%d_") + '.txt', 'x', encoding="utf-8") as output:
         for element in elements_searched:
             if len(soup.find_all(element)) > 0:
                 for paragraph in soup.find_all(element):
@@ -61,8 +60,7 @@ def write_page_text(soup, rec_depth, elements_searched):
                     if len(para_text.split()) > 8: #filter by >8 words
                         try:
                             output.write(para_text + "\n")
-                        #soup has already been filtered for printable
-                        #and yet this excpetion handling is needed...
+                        #this shouldn't be needed
                         except UnicodeEncodeError:
                             logger.warning("handled unicode encode error, line 72")
                     #else:
@@ -130,7 +128,7 @@ def write_logfile(soup, default=True):
     if default:
         with open("raw_output/" +
             "SCRAPE_LOG" + " " + datetime.now().strftime(
-                "%Y-%m-%d") + '.txt', 'a') as logfile:
+                "%Y-%m-%d") + '.txt', 'a', encoding="utf-8") as logfile:
             logfile.write(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
             logfile.write("\n" + str(soup.title) + "\n" + "\n")
             logfile.close()
