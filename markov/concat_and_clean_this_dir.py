@@ -8,7 +8,7 @@ def delete_empty_txts():
     """delete all empty text files first"""
     delete_bool = True
     for f in read_files:
-        with open(f, "r+", encoding="latin-1") as infile:
+        with open(f, "r+", encoding="utf-8") as infile:
             for line in infile:
                 if line.rstrip():
                     delete_bool = False
@@ -19,10 +19,11 @@ def delete_empty_txts():
 def glob_append():
     """use glob to concatenate files"""
     with open("CONCAT_MARKOVIAN_"+datetime.now().strftime(
-        "%Y-%m-%d_"), "wb") as outfile:
+        "%Y-%m-%d_"), "wb", encoding="utf-8") as outfile:
         for f in read_files:
-            with open(f, "rb") as infile:
+            with open(f, "rb", encoding="utf-8") as infile:
                 outfile.write(infile.read())
 
-delete_empty_txts()
-glob_append()
+if __name__ == __main__:
+    delete_empty_txts()
+    glob_append()
