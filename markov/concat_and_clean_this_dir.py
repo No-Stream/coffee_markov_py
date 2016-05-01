@@ -6,8 +6,8 @@ read_files = glob.glob("*.txt")
 
 def delete_empty_txts():
     """delete all empty text files first"""
-    delete_bool = True
     for f in read_files:
+        delete_bool = True
         with open(f, "r+", encoding="utf-8") as infile:
             for line in infile:
                 if line.rstrip():

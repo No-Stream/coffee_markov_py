@@ -2,17 +2,24 @@
 from datetime import datetime
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
-import os, re, requests, logging, scrape_sources
+from send2trash import send2trash
+import os, re, requests, logging, scrape_sources, glob, string
 
 
 class Options():
     url = ""
     symbol_free_url = ""
     session = None
-    ignored_terms = ["twitter", "facebook", "google", "instagram", "apple", "pinterest",
+    ignored_terms = {"twitter", "facebook", "google", "instagram", "apple", "pinterest",
                      "youtube", "account", "login", "register",
                      "cart", "about", "contact", "wholesale", "blog", "careers",
-                     "learn", "location", "locations", "tea", "education", "squareup"]
+                     "learn", "location", "locations", "tea", "education", "squareup"}
+
+def remove_symbols(url):
+    """remove symbols from a URL"""
+    url = str(url)
+    return "".join([char if char in string.ascii_letters else " " for char in url ])
+    #return re.sub(r'[^\w]', ' ', url)
 
 def route_requests(url_list, rec_depth=0):
     """Let's get shit started"""
@@ -63,14 +70,13 @@ def write_page_text(soup, rec_depth, elements_searched):
                         #this shouldn't be needed
                         except UnicodeEncodeError:
                             logger.warning("handled unicode encode error, line 72")
-                    #else:
-                    #    logger.debug("too short: " + para_text)
+                    else:
+                        logger.debug("too short: " + para_text)
         recur(soup, rec_depth)
         output.close()
 
 def recur(soup, rec_depth):
-    """recursive searching of linked pages
-    TODO: separate this function and refactor"""
+    """recursive searching of linked pages"""
     rec_depth += 1
     parsed_uri = urlparse(Options.url)
     domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
@@ -82,16 +88,13 @@ def recur(soup, rec_depth):
     links_in_page = soup.find_all("a", href=True)
     if rec_depth <= 2 and len(links_in_page) > 0:
         filtered_links = [link for link in links_in_page if not has_ignored_terms(remove_symbols(link))]
+        logger.debug("testing if link is eligible --> " + str(links_in_page))
         for link in filtered_links:
             Options.url = link.get('href')
             symbol_free_url = remove_symbols(link)
             if not os.path.isfile(symbol_free_url + " " + datetime.now().strftime(
                     "%Y-%m-%d_") + '.txt'):
                 attempt_recursive_call(rec_depth, domain, link)
-
-def remove_symbols(url):
-    """remove symbols from a URL"""
-    return re.sub(r'[^\w]', ' ', Options.url)
 
 def attempt_recursive_call(rec_depth, domain, link):
     try:
@@ -111,6 +114,20 @@ def attempt_recursive_call(rec_depth, domain, link):
             logger.info(
                 "rec_depth = " + str(rec_depth)+"; processing link w/o TLD " + Options.symbol_free_url)
             parse_html_and_write(rec_depth)
+
+def delete_irrelevant_texts():
+    read_files = glob.iglob("/raw_output/*.txt")
+    for f in read_files:
+        with open(f, "r+", encoding="utf-8") as infile:
+            delete_this_file = True
+            for line in infile:
+                if line.rstrip():
+                    delete_this_file = False
+            if sum([1 for word in os.path.basename(infile) if word in Options.ignored_terms]) > 0:
+                delete_this_file = True
+            infile.close()
+        if delete_this_file:
+            send2trash(f)
 
 def log_links_on_page(soup):
     """print links on page to log file"""
@@ -134,10 +151,10 @@ def write_logfile(soup, default=True):
             logfile.close()
 
 
-
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
     route_requests(scrape_sources.COFFEE_PAGES)
+
+    delete_irrelevant_texts()
