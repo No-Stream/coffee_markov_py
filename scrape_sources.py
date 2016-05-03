@@ -31,7 +31,7 @@ COFFEE_PAGES = [
     "https://www.tobysestate.com.au/store/coffee.html",
     "http://www.tonyscoffee.com/shop/product-category/coffee/",
     "http://www.vervecoffeeroasters.com/collections/coffee",
-    "http://wateravenuecoffee.com/collections/beans"
+    "http://wateravenuecoffee.com/collections/beans",
     #added to expand markov dictionary size: sf, pdx, nordic
     "https://www.sightglasscoffee.com/coffees",
     "http://fourbarrelcoffee.com/product-category/coffees/",
@@ -46,4 +46,3 @@ COFFEE_PAGES = [
     "http://rubycoffeeroasters.com/",
     "https://varietycoffeeroasters.com/?page_id=493"
 ]
-
