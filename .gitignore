@@ -32,3 +32,6 @@ Thumbs.db
 *.rar
 *.pyc
 *.log
+
+*.7z
+*.zip

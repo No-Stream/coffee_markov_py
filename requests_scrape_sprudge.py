@@ -3,46 +3,43 @@ from datetime import datetime
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from send2trash import send2trash
-import os, re, requests, logging, scrape_sources, glob, string, multiprocessing, weakref
+from tqdm import tqdm
+import os, re, requests, logging, scrape_sources, glob, string, multiprocessing
+import weakref, aiohttp, asyncio
 
 
 def remove_symbols(url):
-    """remove symbols from a URL"""
+    """"""
     url = str(url)
     return "".join([char if char in string.ascii_letters else " " for char in url ])
     #no need for regex
     #return re.sub(r'[^\w]', ' ', url)
 
 def route_requests(url_list, rec_depth=0):
-    """Let's get shit started"""
-    #moved to __main__
-    #this_session = requests.Session()
-
-    #TODO: implement multiprocessing
-    """may need to implement this as workers since each worker needs to be stateful
-    to store data about its current page"""
-    #pool = multiprocessing.Pool(4)
-    #pool.map(process_page, url_list)
-    for url in url_list:
+    """route requests for each top-level domain"""
+    for url in tqdm(url_list):
         process_page(rec_depth, url)
 
-def return_html(url):
+def return_html(session, url):
     """print html of a given URL"""
     source_html = (this_session.get(url)).text
-    return source_html
     content = ''.join([x for x in source_html if not x.isdigit()])
     return content
 
+
+async def async_return_html(session,url):
+    with aiohttp.Timeout(10):
+        async with this_session.get(url) as response:
+            return await response.text()
+
 def process_page(rec_depth, url):
-    content = return_html(url)
+    content = return_html(this_session, url)
     symbol_free_url = remove_symbols(url)
-    page_object = Scraped_Page()
-    this_page = page_object#weakref.ref(page_object)
-    this_page.symbol_free_url, this_page.url = symbol_free_url, url
-    logger.info("symbol_free_url= " + this_page.symbol_free_url)
+    page_object = Scraped_Page(url, symbol_free_url)
+    this_page = page_object
+    logger.info("processing " + this_page.url)
     soup = BeautifulSoup(content, "html.parser")
     this_page.prepare_page(soup, rec_depth)
-
 
 class Scraped_Page():
     object_count = 0
@@ -50,10 +47,10 @@ class Scraped_Page():
                      "youtube", "account", "login", "register",
                      "cart", "about", "contact", "wholesale", "blog", "careers",
                      "learn", "location", "locations", "tea", "education", "squareup"}
-    
-    def __init__(self):
-        self.url = ""
-        self.symbol_free_url = ""
+
+    def __init__(self, url, symbol_free_url):
+        self.url = url
+        self.symbol_free_url = symbol_free_url
         self.content = ""
 
     def prepare_page(self, soup, rec_depth):
@@ -95,7 +92,7 @@ class Scraped_Page():
         rec_depth += 1
         parsed_uri = urlparse(self.url)
         domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
-        logger.info("domain = " + domain)
+        logger.debug("domain = " + domain)
 
         def has_ignored_terms(text):
             return any(word in Scraped_Page.ignored_terms for word in text.split(" "))
@@ -113,7 +110,7 @@ class Scraped_Page():
 
     def attempt_recursive_call(self, rec_depth, domain, link):
         try:
-            logger.info("rec_depth = " + str(rec_depth)+ "; processing " + self.url)
+            logger.debug("rec_depth = " + str(rec_depth)+ "; processing " + self.url)
             process_page(rec_depth, link)
         except UnicodeEncodeError:
             logger.warning("handled unicode error, line 108")
@@ -126,7 +123,7 @@ class Scraped_Page():
             self.symbol_free_url = remove_symbols(self.url)
             if not os.path.isfile(self.symbol_free_url + " " + datetime.now(
             ).strftime("%Y-%m-%d_") + '.txt'):
-                logger.info(
+                logger.debug(
                     "rec_depth = " + str(rec_depth)+"; processing link w/o TLD "
                      + self.symbol_free_url)
                 process_page(rec_depth, self.url)
@@ -166,6 +163,13 @@ class Scraped_Page():
                 logfile.write("\n" + str(soup.title) + "\n" + "\n")
                 logfile.close()
 
+"""
+class Worker:
+    """"""TODO: worker class for threaded operation""""""
+    def __init__(self, worker_number):
+        self.worker_number = worker_number
+    worker_page = Scraped_Page()
+"""
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -173,6 +177,9 @@ if __name__ == "__main__":
 
     this_session = requests.Session()
 
+    #connection = aiohttp.BaseConnector(conn_timeout=10,limit=20)
+    #this_session = aiohttp.ClientSession(connector=connection)
+
     route_requests(scrape_sources.COFFEE_PAGES)
 
-    delete_irrelevant_texts()
+    this_page.delete_irrelevant_texts()
