@@ -1,7 +1,6 @@
 """lightly modified from https://github.com/hrs/markov-sentence-generator"""
 #!/usr/bin/python
 
-#import pyximport; pyximport.install(pyimport = True)
 import re
 import random
 import sys
@@ -52,7 +51,7 @@ def toHashKey(lst):
 # Returns the contents of the file, split into a list of words and
 # (some) punctuation.
 def wordlist(filename):
-    f = open(filename, 'r')
+    f = open(filename, 'r', encoding = 'latin-1')
     wordlist = [fixCaps(w) for w in re.findall(r"[\w']+|[.,!?;]", f.read())]
     f.close()
     return wordlist
@@ -81,35 +80,24 @@ def addItemToTempMapping(history, word):
 #THIS CODE IS SLOW. It needs to be cached.
 def buildMapping(wordlist, markovLength):
     global tempMapping
-    file_path = ("tempMapping " + datetime.now().strftime("%Y-%m-%d_") + '.txt')
-    if os.path.isfile(file_path):
-        json.load(open(file_path))
-        """with open(file_path, 'r') as dict_source:
-            string_ = dict_source.read()
-            print(string_)
-            #mapping = ast.literal_eval(string_)"""
-    else:
-        starts.append(wordlist [0])
-        for i in range(1, len(wordlist) - 1):
-            if i <= markovLength:
-                history = wordlist[: i + 1]
-            else:
-                history = wordlist[i - markovLength + 1 : i + 1]
-            follow = wordlist[i + 1]
-            # if the last elt was a period, add the next word to the start list
-            if history[-1] == "." and follow not in ".,!?;":
-                starts.append(follow)
-            addItemToTempMapping(history, follow)
-        # Normalize the values in tempMapping, put them into mapping
-        for first, followset in tempMapping.items():
-            total = sum(followset.values())
-            # Normalizing here:
-            mapping[first] = dict([(k, v / total) for k, v in followset.items()])
-            #caching to txt file
-            json.dumps(mapping, open(file_path, 'w'))
-        """with open(file_path, 'w+') as output:
-            for line in mapping:
-                output.write(str(line))"""
+    #TODO: save tempMapping as json for re-use
+    starts.append(wordlist [0])
+    for i in range(1, len(wordlist) - 1):
+        if i <= markovLength:
+            history = wordlist[: i + 1]
+        else:
+            history = wordlist[i - markovLength + 1 : i + 1]
+        follow = wordlist[i + 1]
+        # if the last elt was a period, add the next word to the start list
+        if history[-1] == "." and follow not in ".,!?;":
+            starts.append(follow)
+        addItemToTempMapping(history, follow)
+    # Normalize the values in tempMapping, put them into mapping
+    for first, followset in tempMapping.items():
+        total = sum(followset.values())
+        # Normalizing here:
+        mapping[first] = dict([(k, v / total) for k, v in followset.items()])
+
 
 # Returns the next word in the sentence (chosen randomly),
 # given the previous ones.
@@ -149,7 +137,7 @@ def main():
         sys.stderr.write('Usage: ' + sys.argv [0] + ' text_source [chain_length=1]\n')
         sys.exit(1)
     filename = sys.argv[1]
-    markovLength = 1
+    markovLength = 3
     if len (sys.argv) == 3:
         markovLength = int(sys.argv [2])
     buildMapping(wordlist(filename), markovLength)

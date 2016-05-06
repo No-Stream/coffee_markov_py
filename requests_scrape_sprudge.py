@@ -6,7 +6,10 @@ from send2trash import send2trash
 from tqdm import tqdm
 import os, re, requests, logging, scrape_sources, glob, string, multiprocessing
 import weakref, aiohttp, asyncio
+import cProfile
 
+#cProfile this file with e.g.:
+#python -m cProfile -o 'profile_scrape.pstats' -s 'time' ./requests_scrape_sprudge.py
 
 def remove_symbols(url):
     """"""
@@ -22,10 +25,13 @@ def route_requests(url_list, rec_depth=0):
 
 def return_html(session, url):
     """print html of a given URL"""
-    source_html = (this_session.get(url)).text
-    content = ''.join([x for x in source_html if not x.isdigit()])
-    return content
-
+    try:
+        source_html = (this_session.get(url, verify=False, timeout=6.1)).text
+    #content = ''.join([x for x in source_html if not x.isdigit()])
+    except requests.exceptions.ReadTimeout as error:
+        source_html = ''
+        logger.warning("connection timed out at " + str(error))
+    return source_html
 
 async def async_return_html(session,url):
     with aiohttp.Timeout(10):
@@ -38,7 +44,7 @@ def process_page(rec_depth, url):
     page_object = Scraped_Page(url, symbol_free_url)
     this_page = page_object
     logger.info("processing " + this_page.url)
-    soup = BeautifulSoup(content, "html.parser")
+    soup = BeautifulSoup(content, "lxml")
     this_page.prepare_page(soup, rec_depth)
 
 class Scraped_Page():
@@ -76,7 +82,7 @@ class Scraped_Page():
                 if len(soup.find_all(element)) > 0:
                     for paragraph in soup.find_all(element):
                         para_text = paragraph.getText()
-                        if len(para_text.split()) > 8: #filter by >8 words
+                        if len(para_text.split()) > 5: #filter by >8 words
                             try:
                                 output.write(para_text + "\n")
                             #this shouldn't be needed
@@ -84,8 +90,8 @@ class Scraped_Page():
                                 logger.warning("handled unicode encode error, line 72")
                         else:
                             logger.debug("too short: " + para_text)
-            self.recur(soup, rec_depth)
             output.close()
+        self.recur(soup, rec_depth)
 
     def recur(self, soup, rec_depth):
         """recursive searching of linked pages"""
@@ -98,7 +104,7 @@ class Scraped_Page():
             return any(word in Scraped_Page.ignored_terms for word in text.split(" "))
 
         links_in_page = soup.find_all("a", href=True)
-        if rec_depth <= 2 and len(links_in_page) > 0:
+        if rec_depth <= 1 and len(links_in_page) > 0:
             filtered_links = [link for link in links_in_page if not has_ignored_terms(remove_symbols(link))]
             logger.debug("testing if link is eligible --> " + str(links_in_page))
             for link in filtered_links:
@@ -116,8 +122,8 @@ class Scraped_Page():
             logger.warning("handled unicode error, line 108")
         except TypeError:
             logger.warning("handled type error, line 110")
-        except requests.exceptions.InvalidSchema:
-            logger.warning("handled requests.exceptions.InvalidSchema, line 112")
+        except requests.exceptions.InvalidSchema as error:
+            logger.warning("handled requests.exceptions.InvalidSchema, line 112 --> " + str(error))
         except requests.exceptions.MissingSchema:
             self.url = domain+link.get('href')
             self.symbol_free_url = remove_symbols(self.url)
@@ -175,6 +181,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
+    profile = cProfile.Profile()
+    profile.enable()
+
+    this_page = None
     this_session = requests.Session()
 
     #connection = aiohttp.BaseConnector(conn_timeout=10,limit=20)
@@ -182,4 +192,7 @@ if __name__ == "__main__":
 
     route_requests(scrape_sources.COFFEE_PAGES)
 
-    this_page.delete_irrelevant_texts()
+    profile.disable()
+    profile.print_stats(sort='time')
+
+    #this_page.delete_irrelevant_texts()
