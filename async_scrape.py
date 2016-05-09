@@ -21,24 +21,40 @@ def remove_symbols(url):
     #no need for regex
     #return re.sub(r'[^\w]', ' ', url)
 
-def route_requests(url_list, rec_depth=0):
+def get_domain(url):
+    parsed_uri = urlparse(url)
+    domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+    logger.debug("domain = " + domain)
+    return domain
+
+def route_requests(urls_and_domains, rec_depth=0):
     """route requests for each top-level domain"""
-    logger.debug("urls being routed --> " + str([url for url in url_list]) + "\n \n \n")
-    reqs = (grequests.get(url) for url in url_list)
+
+    this_page.timestamp = "async_output_" + datetime.now().strftime(
+        "%Y-%m-%d_%H-%M-%S")
+    this_page.links_in_page = []
+
+    logger.debug("urls being routed --> " + str([url for url in urls_and_domains]) + "\n \n \n")
+    url_list = [tuple_[0] if tuple_[0][0].startswith("http") else tuple_[1]+tuple_[0] for tuple_ in urls_and_domains]
+    reqs = (grequests.get(url, timeout=12.1) for url in url_list)
     content = return_html(this_session, url_list[0])
     base_page = BeautifulSoup(content, "lxml")
     soup = base_page.find('body')
-    #logger.debug(str(soup))
-    for response in grequests.map(reqs):
+
+    for url,response in zip(url_list,grequests.map(reqs)):
         try:
+            domain = get_domain(url)
+            new_soup = BeautifulSoup(response.text, "lxml").find('body')
+            links_in_page = new_soup.find_all("a", href=True)
+            filtered_hrefs = [link.get(
+                'href') for link in links_in_page if not this_page.has_ignored_terms(remove_symbols(link))]
+            this_page.links_in_page.extend([(link,domain) for link in filtered_hrefs])
             soup.append(copy.copy(BeautifulSoup(response.text, "lxml").find('body')))
         except Exception as e:
             break
             logger.warning("url not handled correctly, line 30 --> " + str(e))
-    #logger.debug("concatenated soup --> \n" + str(soup))
-    process_async(rec_depth, soup)
-    #for url in tqdm(url_list):
-    #    process_page(rec_depth, url)
+
+    this_page.prepare_page(soup, rec_depth)
 
 def return_html(session, url):
     """print html of a given URL"""
@@ -50,20 +66,6 @@ def return_html(session, url):
         logger.warning("connection timed out at " + str(error))
     return source_html.text
 
-def process_page(rec_depth, url):
-    content = return_html(this_session, url)
-    symbol_free_url = remove_symbols(url)
-    page_object = Scraped_Page(url, symbol_free_url)
-    this_page = page_object
-    logger.info("processing " + this_page.url)
-    soup = BeautifulSoup(content, "lxml")
-    this_page.prepare_page(soup, rec_depth)
-
-def process_async(rec_depth, soup):
-    filename = "async_output_" + datetime.now().strftime(
-        "%Y-%m-%d_%H-%M-%S")
-    this_page = Scraped_Page(filename, filename)
-    this_page.prepare_page(soup, rec_depth)
 
 class Scraped_Page():
     object_count = 0
@@ -72,38 +74,30 @@ class Scraped_Page():
                      "cart", "about", "contact", "wholesale", "blog", "careers",
                      "learn", "location", "locations", "tea", "education", "squareup"}
 
-    def __init__(self, url, symbol_free_url):
-        self.url = url
-        self.symbol_free_url = symbol_free_url
+    def __init__(self):
+        self.url = ""
+        self.symbol_free_url = ""
         self.content = ""
         self.timestamp = ""
+        self.links_in_page = []
         self.elements_searched = ["p"]
 
     def prepare_page(self, soup, rec_depth):
         """logfile if requested"""
         self.write_logfile(soup, False)
-        self.handle_duplicate_pages(soup, rec_depth)
-
-    def handle_duplicate_pages(self, soup, rec_depth):
-        try:
-            if not os.path.isfile("raw_output/" +
-            self.symbol_free_url + " " + datetime.now().strftime(
-                "%Y-%m-%d_") + '.txt'):
-                self.write_page_text(soup, rec_depth)
-        except FileExistsError:
-            logger.info("Attempted to write duplicate page.")
+        self.write_page_text(soup, rec_depth)
 
     def write_page_text(self, soup, rec_depth):
         with open( "raw_output/" +
             self.symbol_free_url + " " + datetime.now().strftime(
-                "%Y-%m-%d_") + '.txt', 'x', encoding="utf-8") as output:
+                "%Y-%m-%d_%H-%M-%S") + '.txt', 'x', encoding="utf-8") as output:
             for element in self.elements_searched:
                 if len(soup.find_all(element)) > 0:
                     for paragraph in soup.find_all(element):
                         para_text = paragraph.getText()
                         if len(para_text.split()) > 5: #filter by >8 words
                             try:
-                                output.write(para_text + "\n")
+                                output.write(" " + para_text + "\n")
                                 #logger.debug("paragraph written --> " + str(para_text))
                             #this shouldn't be needed
                             except UnicodeEncodeError:
@@ -113,31 +107,29 @@ class Scraped_Page():
             output.close()
         self.recur(soup, rec_depth)
 
+    def has_ignored_terms(text):
+        return any(word in Scraped_Page.ignored_terms for word in text.split(" "))
+
     def recur(self, soup, rec_depth):
         """recursive searching of linked pages"""
         rec_depth += 1
-        #below no longer works because page is made up of a bunch of concatenated web pages
-        parsed_uri = urlparse(self.url)
-        domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
-        logger.debug("domain = " + domain)
 
-        def has_ignored_terms(text):
-            return any(word in Scraped_Page.ignored_terms for word in text.split(" "))
+        #extracted get_domain
 
-        links_in_page = soup.find_all("a", href=True)
-        if rec_depth <= 1 and len(links_in_page) > 0:
-            filtered_hrefs = [link.get('href') for link in links_in_page if not has_ignored_terms(remove_symbols(link))]
-            filtered_links = filtered_hrefs
-            #filtered_links = [domain + link if link[0]=="/" else link for link in filtered_hrefs]
+        if rec_depth <= 1 and len(self.links_in_page) > 0:
             self.url = "recur " + datetime.now().strftime(
                 "%Y-%m-%d_%H-%M-%S")
             self.symbol_free_url = self.url
-            self.attempt_recursive_call(rec_depth, domain, filtered_links)
+            self.attempt_recursive_call(rec_depth)
+        elif len(self.links_in_page) == 0:
+            logger.info("Stopping recursion; no links left to follow.")
+        elif rec_depth >= 2:
+            logger.info("Stopping recursion; recursion depth = " + str(rec_depth))
 
-    def attempt_recursive_call(self, rec_depth, domain, url_list):
+    def attempt_recursive_call(self, rec_depth):
         try:
             logger.debug("rec_depth = " + str(rec_depth)+ "; processing " + self.url)
-            route_requests(url_list, rec_depth)
+            route_requests(self.links_in_page, rec_depth)
         except UnicodeEncodeError:
             logger.warning("handled unicode error, line 108")
         except TypeError:
@@ -146,15 +138,6 @@ class Scraped_Page():
             logger.warning("handled requests.exceptions.InvalidSchema, line 139 --> " + str(error))
         except requests.exceptions.MissingSchema as error:
             logger.warning("handled missing domain, line 141 --> " + str(error))
-            #need to handle this above
-            """self.url = domain+link.get('href')
-            self.symbol_free_url = remove_symbols(self.url)
-            if not os.path.isfile(self.symbol_free_url + " " + datetime.now(
-            ).strftime("%Y-%m-%d_") + '.txt'):
-                logger.debug(
-                    "rec_depth = " + str(rec_depth)+"; processing link w/o TLD "
-                     + self.symbol_free_url)
-                process_page(rec_depth, self.url)"""
 
     def delete_irrelevant_texts(self):
         read_files = glob.iglob("/raw_output/*.txt")
@@ -191,13 +174,7 @@ class Scraped_Page():
                 logfile.write("\n" + str(soup.title) + "\n" + "\n")
                 logfile.close()
 
-"""
-class Worker:
-    """"""TODO: worker class for threaded operation""""""
-    def __init__(self, worker_number):
-        self.worker_number = worker_number
-    worker_page = Scraped_Page()
-"""
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
@@ -209,10 +186,12 @@ if __name__ == "__main__":
     profile = cProfile.Profile()
     #profile.enable()
 
-    this_page = None
+    this_page = Scraped_Page()
     this_session = requests.Session()
 
-    route_requests(scrape_sources.COFFEE_PAGES)
+    initial_urls_and_domains = [(url, get_domain(url)) for url in scrape_sources.COFFEE_PAGES]
+
+    route_requests(initial_urls_and_domains)
 
     #profile.disable()
     #profile.print_stats(sort='time')
