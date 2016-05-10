@@ -53,7 +53,7 @@ def route_requests(urls_and_domains, rec_depth=0):
             domain = get_domain(url)
             new_soup = BeautifulSoup(response.text, "lxml").find('body')
             new_links = new_soup.find_all("a", href=True)
-            link_refs = [remove_symbols(link.get('href')) for link in new_links]
+            link_refs = [link.get('href') for link in new_links]
             logger.debug('link refs w/o symbols = ' + str(link_refs))
             filtered_new_links = [link for link in link_refs if not this_page.has_ignored_terms(remove_symbols(link))]
             logger.debug("Found links in above page: " + str(filtered_new_links))
@@ -116,7 +116,7 @@ class Scraped_Page():
             output.close()
         self.recur(soup, rec_depth)
 
-    def has_ignored_terms(text):
+    def has_ignored_terms(self, text):
         return any(word in Scraped_Page.ignored_terms for word in text.split(" "))
 
     def recur(self, soup, rec_depth):
