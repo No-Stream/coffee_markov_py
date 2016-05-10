@@ -3,7 +3,6 @@ from datetime import datetime
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from send2trash import send2trash
-from tqdm import tqdm
 import os, re, requests, logging, glob, string
 import weakref, aiohttp, asyncio
 import cProfile
@@ -14,13 +13,6 @@ import scrape_sources
 #cProfile this file with e.g.:
 #python -m cProfile -o 'profile_scrape.pstats' -s 'time' ./requests_scrape_sprudge.py
 
-def remove_symbols(url):
-    """"""
-    url = str(url)
-    return "".join([char if char in string.ascii_letters else " " for char in url ])
-    #no need for regex
-    #return re.sub(r'[^\w]', ' ', url)
-
 def get_domain(url):
     parsed_uri = urlparse(url)
     domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
@@ -30,12 +22,26 @@ def get_domain(url):
 def route_requests(urls_and_domains, rec_depth=0):
     """route requests for each top-level domain"""
 
+    def url_includes_domain(url):
+        return str(url).startswith("http")
+
+    def remove_symbols(url):
+        """"""
+        url = str(url)
+        return "".join([char if char in string.ascii_letters else " " for char in url])
+        #no need for regex
+        #return re.sub(r'[^\w]', ' ', url)
+
     this_page.timestamp = "async_output_" + datetime.now().strftime(
         "%Y-%m-%d_%H-%M-%S")
     this_page.links_in_page = []
 
-    logger.debug("urls being routed --> " + str([url for url in urls_and_domains]) + "\n \n \n")
-    url_list = [tuple_[0] if tuple_[0][0].startswith("http") else tuple_[1]+tuple_[0] for tuple_ in urls_and_domains]
+    logger.debug("(urls,domains) being routed --> " + str([url for url in urls_and_domains]) + "\n \n \n")
+    url_list = [tuple_[0] if url_includes_domain(tuple_[0]) else tuple_[1]+tuple_[0] for tuple_ in urls_and_domains]
+
+    logger.debug("Following these links: " + str(url_list) + "\n")
+
+    #TODO: """extract function _def_ make_requests(urls):"""
     reqs = (grequests.get(url, timeout=12.1) for url in url_list)
     content = return_html(this_session, url_list[0])
     base_page = BeautifulSoup(content, "lxml")
@@ -43,12 +49,15 @@ def route_requests(urls_and_domains, rec_depth=0):
 
     for url,response in zip(url_list,grequests.map(reqs)):
         try:
+            logger.debug("Getting links from " + url)
             domain = get_domain(url)
             new_soup = BeautifulSoup(response.text, "lxml").find('body')
-            links_in_page = new_soup.find_all("a", href=True)
-            filtered_hrefs = [link.get(
-                'href') for link in links_in_page if not this_page.has_ignored_terms(remove_symbols(link))]
-            this_page.links_in_page.extend([(link,domain) for link in filtered_hrefs])
+            new_links = new_soup.find_all("a", href=True)
+            link_refs = [remove_symbols(link.get('href')) for link in new_links]
+            logger.debug('link refs w/o symbols = ' + str(link_refs))
+            filtered_new_links = [link for link in link_refs if not this_page.has_ignored_terms(remove_symbols(link))]
+            logger.debug("Found links in above page: " + str(filtered_new_links))
+            this_page.links_in_page.extend([(link,domain) for link in filtered_new_links])
             soup.append(copy.copy(BeautifulSoup(response.text, "lxml").find('body')))
         except Exception as e:
             break
