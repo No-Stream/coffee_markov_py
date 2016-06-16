@@ -34,38 +34,36 @@ def route_requests(urls_and_domains, rec_depth=0):
 
     this_page.timestamp = "async_output_" + datetime.now().strftime(
         "%Y-%m-%d_%H-%M-%S")
-    this_page.links_in_page = []
+    #this_page.links_in_page = []
 
     logger.debug("(urls,domains) being routed --> " + str([url for url in urls_and_domains]) + "\n \n \n")
-    url_list = [tuple_[0] if url_includes_domain(tuple_[0]) else tuple_[1]+tuple_[0] for tuple_ in urls_and_domains]
+    url_list = {tuple_[0] if url_includes_domain(tuple_[0]) else tuple_[1]+tuple_[0] for tuple_ in urls_and_domains}
 
     logger.debug("Following these links: " + str(url_list) + "\n")
 
     #TODO: """extract function _def_ make_requests(urls):"""
     reqs = (grequests.get(url, timeout=12.1) for url in url_list)
-    content = return_html(this_session, url_list[0])
+    content = return_html("http://www.this-page-intentionally-left-blank.org/")
     base_page = BeautifulSoup(content, "lxml")
     soup = base_page.find('body')
 
     for url,response in zip(url_list,grequests.map(reqs)):
-        try:
+        if url is not None and response is not None:
             logger.debug("Getting links from " + url)
             domain = get_domain(url)
             new_soup = BeautifulSoup(response.text, "lxml").find('body')
             new_links = new_soup.find_all("a", href=True)
-            link_refs = [link.get('href') for link in new_links]
-            logger.debug('link refs w/o symbols = ' + str(link_refs))
-            filtered_new_links = [link for link in link_refs if not this_page.has_ignored_terms(remove_symbols(link))]
+            link_refs = {link.get('href') for link in new_links if link is not None}
+            #logger.debug('link refs w/o symbols = ' + str(link_refs))
+            filtered_new_links = {link for link in link_refs if not this_page.has_ignored_terms(remove_symbols(link))}
             logger.debug("Found links in above page: " + str(filtered_new_links))
-            this_page.links_in_page.extend([(link,domain) for link in filtered_new_links])
+            for link in filtered_new_links:
+                this_page.links_in_page.add((link,domain))
             soup.append(copy.copy(BeautifulSoup(response.text, "lxml").find('body')))
-        except Exception as e:
-            break
-            logger.warning("url not handled correctly, line 30 --> " + str(e))
 
     this_page.prepare_page(soup, rec_depth)
 
-def return_html(session, url):
+def return_html(url):
     """print html of a given URL"""
     try:
         source_html = (this_session.get(url, verify=False, timeout=6.1))
@@ -79,16 +77,17 @@ def return_html(session, url):
 class Scraped_Page():
     object_count = 0
     ignored_terms = {"twitter", "facebook", "google", "instagram", "apple", "pinterest",
-                     "youtube", "account", "login", "register",
-                     "cart", "about", "contact", "wholesale", "blog", "careers",
-                     "learn", "location", "locations", "tea", "education", "squareup"}
+                     "youtube", "account", "login", "register", "flickr", "pdf", "jpg",
+                     "cart", "about", "contact", "wholesale", "blog", "careers", "jpeg",
+                     "learn", "location", "locations", "tea", "education", "squareup",
+                     "mailto", "javascript", "flash"}
 
     def __init__(self):
         self.url = ""
         self.symbol_free_url = ""
         self.content = ""
         self.timestamp = ""
-        self.links_in_page = []
+        self.links_in_page = set()
         self.elements_searched = ["p"]
 
     def prepare_page(self, soup, rec_depth):
@@ -110,9 +109,10 @@ class Scraped_Page():
                                 #logger.debug("paragraph written --> " + str(para_text))
                             #this shouldn't be needed
                             except UnicodeEncodeError:
-                                logger.warning("handled unicode encode error, line 72")
+                                logger.warning("handled unicode encode error, line 118")
                         else:
-                            logger.debug("too short: " + para_text)
+                            pass
+                            #logger.debug("too short: " + para_text)
             output.close()
         self.recur(soup, rec_depth)
 
@@ -141,8 +141,6 @@ class Scraped_Page():
             route_requests(self.links_in_page, rec_depth)
         except UnicodeEncodeError:
             logger.warning("handled unicode error, line 108")
-        except TypeError:
-            logger.warning("handled type error, line 110")
         except requests.exceptions.InvalidSchema as error:
             logger.warning("handled requests.exceptions.InvalidSchema, line 139 --> " + str(error))
         except requests.exceptions.MissingSchema as error:
@@ -193,7 +191,7 @@ if __name__ == "__main__":
     "%Y-%m-%d_%H-%M-%S" + "\n \n \n"))
 
     profile = cProfile.Profile()
-    #profile.enable()
+    profile.enable()
 
     this_page = Scraped_Page()
     this_session = requests.Session()
@@ -202,5 +200,5 @@ if __name__ == "__main__":
 
     route_requests(initial_urls_and_domains)
 
-    #profile.disable()
-    #profile.print_stats(sort='time')
+    profile.disable()
+    profile.print_stats(sort='time')
