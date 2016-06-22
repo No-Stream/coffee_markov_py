@@ -48,5 +48,11 @@ COFFEE_PAGES = [
     "http://www.klatchroasting.com/All_Coffees_s/389.htm",
     "http://shop.parlorcoffee.com/",
     "http://rubycoffeeroasters.com/",
-    "https://varietycoffeeroasters.com/?page_id=493"
+    "https://varietycoffeeroasters.com/?page_id=493",
+    #added from Sweet Maria's site
+    "https://legacy.sweetmarias.com/library/content/origin-pages",
+    "https://www.sweetmarias.com/category/green-coffee/central-north-america",
+    "https://www.sweetmarias.com/category/green-coffee/south-america",
+    "https://www.sweetmarias.com/category/green-coffee/africa-and-arabia",
+    "https://www.sweetmarias.com/category/green-coffee/islands"
 ]

@@ -13,24 +13,24 @@ import scrape_sources
 #cProfile this file with e.g.:
 #python -m cProfile -o 'profile_scrape.pstats' -s 'time' ./requests_scrape_sprudge.py
 
+#TODO: below three funcs should be refactored into page class
+
 def get_domain(url):
     parsed_uri = urlparse(url)
     domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
     logger.debug("domain = " + domain)
     return domain
 
+def url_includes_domain(url):
+    return str(url).startswith("http")
+
+def remove_symbols(url):
+    """"""
+    url = str(url)
+    return "".join([char if char in string.ascii_letters else " " for char in url])
+
 def route_requests(urls_and_domains, rec_depth=0):
     """route requests for each top-level domain"""
-
-    def url_includes_domain(url):
-        return str(url).startswith("http")
-
-    def remove_symbols(url):
-        """"""
-        url = str(url)
-        return "".join([char if char in string.ascii_letters else " " for char in url])
-        #no need for regex
-        #return re.sub(r'[^\w]', ' ', url)
 
     this_page.timestamp = "async_output_" + datetime.now().strftime(
         "%Y-%m-%d_%H-%M-%S")
@@ -78,10 +78,11 @@ def return_html(url):
 class Scraped_Page():
     object_count = 0
     ignored_terms = {"twitter", "facebook", "google", "instagram", "apple", "pinterest",
-                     "youtube", "account", "login", "register", "flickr", "pdf", "jpg",
-                     "cart", "about", "contact", "wholesale", "blog", "careers", "jpeg",
+                     "youtube", "account", "login", "register", "flickr", "pdf",
+                     "cart", "about", "contact", "wholesale", "blog", "careers", "jobs",
                      "learn", "location", "locations", "tea", "education", "squareup",
-                     "mailto", "javascript", "flash"}
+                     "mailto", "javascript", "flash", "terms", "privacy", "shipping",
+                     "press", "return", "returns", "jpg", "jpeg", "conditions", "support"}
 
     def __init__(self):
         self.url = ""
@@ -104,16 +105,11 @@ class Scraped_Page():
                 if len(soup.find_all(element)) > 0:
                     for paragraph in soup.find_all(element):
                         para_text = paragraph.getText()
-                        if len(para_text.split()) > 5: #filter by >8 words
+                        if len(para_text.split()) > 8: #filter by >8 words
                             try:
                                 output.write(" " + para_text + "\n")
-                                #logger.debug("paragraph written --> " + str(para_text))
-                            #this shouldn't be needed
                             except UnicodeEncodeError:
                                 logger.warning("handled unicode encode error, line 118")
-                        else:
-                            pass
-                            #logger.debug("too short: " + para_text)
             output.close()
         self.recur(soup, rec_depth)
 
@@ -123,8 +119,6 @@ class Scraped_Page():
     def recur(self, soup, rec_depth):
         """recursive searching of linked pages"""
         rec_depth += 1
-
-        #extracted get_domain
 
         if rec_depth <= 1 and len(self.links_in_page) > 0:
             self.url = "recur " + datetime.now().strftime(
@@ -185,7 +179,7 @@ class Scraped_Page():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
     logger.info("Asynchronous scrape begun at " + datetime.now().strftime(
