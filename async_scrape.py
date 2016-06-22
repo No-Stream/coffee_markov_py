@@ -43,8 +43,9 @@ def route_requests(urls_and_domains, rec_depth=0):
 
     #TODO: """extract function _def_ make_requests(urls):"""
     reqs = (grequests.get(url, timeout=12.1) for url in url_list)
-    content = return_html("http://www.this-page-intentionally-left-blank.org/")
-    base_page = BeautifulSoup(content, "lxml")
+    if this_page.content == "":
+        this_page.content = return_html("http://www.this-page-intentionally-left-blank.org/")
+    base_page = BeautifulSoup(this_page.content, "lxml")
     soup = base_page.find('body')
 
     for url,response in zip(url_list,grequests.map(reqs)):
