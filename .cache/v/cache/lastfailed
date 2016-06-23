@@ -1,0 +1,4 @@
+{
+  "test_async_scrape.py::TestGetDomain::()::test_get_domain": true,
+  "test_async_scrape.py::TestInitializePageObject::()::test_initalized_values": true
+}

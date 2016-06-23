@@ -1,9 +1,12 @@
 """tests implemented w/ pytest (http://pytest.org/)
 run w/ e.g. py.test from this folder"""
 
-import pytest
-import async_scrape
 import logging
+
+import pytest
+import grequests
+
+import async_scrape
 
 class TestGetDomain:
     """unittests; TODO"""
@@ -31,3 +34,12 @@ class TestRemoveSymbols:
     def test_remove_symbols_strings(self):
         assert async_scrape.remove_symbols(
             "__360noscope&hello😆.") == "     noscope hello  "
+
+class TestInitializePageObject:
+    def test_initalized_values(self):
+        assert this_page.url == ""
+        assert this_page.symbol_free_url == ""
+        assert this_page.content == ""
+        assert this_page.timestamp == ""
+        assert this_page.links_in_page == set()
+        assert this_page.elements_searched == ["p"]
